@@ -1,0 +1,30 @@
+{
+  "name": "life-chain",
+  "version": "1.0.0",
+  "description": "Decentralised EHR system for patient-centered access control using blockchain technology",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stavroskoumpounis/life-chain.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stavroskoumpounis/life-chain/issues"
+  },
+  "homepage": "https://github.com/stavroskoumpounis/life-chain#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "@nomiclabs/hardhat-truffle5": "^2.0.7",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "hardhat": "^2.11.1",
+    "web3": "^1.7.5"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.7.3"
+  }
+}
