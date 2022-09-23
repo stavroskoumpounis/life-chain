@@ -4,6 +4,7 @@ coverage
 coverage.json
 typechain
 typechain-types
+contracts/CLC_0.sol
 
 #Hardhat files
 cache
