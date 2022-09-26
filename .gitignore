@@ -5,6 +5,9 @@ coverage.json
 typechain
 typechain-types
 contracts/CLC_0.sol
+contracts/Lock.sol
+test/Lock.ts
+.deps
 
 #Hardhat files
 cache

@@ -22,8 +22,12 @@ describe("Classifier", function () {
         expect(await CLC.hasRole(patientRole, otherAccount.address)).to.be.true;
     });
 
-    xit("Should fail to register if the user has already been registered", async function () {
-        // expect().to.equal();
+    it("Should fail to register if the user has already been registered", async function () {
+        const { patientRole, CLC, otherAccount } = await loadFixture(registerPatientFixture);
+
+        console.log(await CLC.callStatic.registerNode(patientRole, otherAccount.address));
+        console.log(await CLC.callStatic.registerNode(patientRole, otherAccount.address));
+        expect(await CLC.hasRole(patientRole, otherAccount.address)).to.be.true;
     });
 
     xit("Should emit the granting of the right role to the right address for the patient", async function () {

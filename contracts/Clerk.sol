@@ -6,39 +6,41 @@ import "hardhat/console.sol";
 import "./Classifier.sol";
 contract Clerk {
 
-  Classifier private CLC;
-  
+  Classifier private CLC = new Classifier();
+  event RegistrationSuccess(bytes32 indexed role, address indexed sender);
+  event AlreadyRegistered(bytes32 indexed role, address indexed account, address indexed sender);
   event Approval(address indexed _sender, address indexed _approved, uint256 indexed _tokenId);
 
-
-  constructor(){
-  }
   modifier onlyOwnerOf(uint _recordId) {
     //require(msg.sender == recordToOwner[_recordId]);
     _;
   }
 
   /**
-  * @dev function for transaction approval from user
+  * @dev transaction approval from user
+  * TEMPLATE
   */
   function approve(address _approved, uint256 _tokenId) external payable onlyOwnerOf(_tokenId) {
     //recordApprovals[_tokenId] = _approved;
     emit Approval(msg.sender, _approved, _tokenId);
   }
 
-  function registerNodeClassifier(bytes32 role) public returns(bool){
+  function registerNodeClassifier(bytes32 role) public {
     //add modifier
     return _registerNodeClassifier(role);
   }
   /**
-  * @dev function for registering a patient and 
-  * returning a bool for a succesful match with the intended role
+  * @dev Registers a patient if the account hasn't been registered already
   */
-  function _registerNodeClassifier(bytes32 role) internal returns(bool){
-    //check if Node already registered ifnot:
-    CLC = new Classifier();
-    CLC.registerNode(role, msg.sender);
-    return CLC.hasRole(role, msg.sender);
+  function _registerNodeClassifier(bytes32 role) internal {
+    if (CLC.hasRole(role,msg.sender)){
+      emit AlreadyRegistered(role,msg.sender, msg.sender);
+    } else{
+      CLC.registerNode(role, msg.sender);
+      if (CLC.hasRole(role, msg.sender)){
+        emit RegistrationSuccess (role, msg.sender);
+      }
+    }
   }
 
 }
