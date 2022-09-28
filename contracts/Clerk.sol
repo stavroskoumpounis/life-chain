@@ -5,8 +5,9 @@ pragma solidity ^0.8.7;
 import "hardhat/console.sol";
 import "./Classifier.sol";
 contract Clerk {
+    //Should probably change to contract address for 1 Classifier SC
+    Classifier private CLC = new Classifier();
 
-  Classifier private CLC = new Classifier();
   event RegistrationSuccess(bytes32 indexed role, address indexed sender);
   event AlreadyRegistered(bytes32 indexed role, address indexed account, address indexed sender);
   event Approval(address indexed _sender, address indexed _approved, uint256 indexed _tokenId);
@@ -32,15 +33,16 @@ contract Clerk {
   /**
   * @dev Registers a patient if the account hasn't been registered already
   */
-  function _registerNodeClassifier(bytes32 role) internal {
-    if (CLC.hasRole(role,msg.sender)){
-      emit AlreadyRegistered(role,msg.sender, msg.sender);
-    } else{
+  function _registerNodeClassifier(bytes32 role) private {
+    if (!CLC.hasRole(role,msg.sender)){
       CLC.registerNode(role, msg.sender);
-      if (CLC.hasRole(role, msg.sender)){
-        emit RegistrationSuccess (role, msg.sender);
-      }
+      emit RegistrationSuccess (role, msg.sender);
+    } else{
+      emit AlreadyRegistered(role,msg.sender, msg.sender);
     }
   }
 
+  function addRecordClassifier(string memory testRecord, uint index) private {
+    CLC.addRecord(testRecord, index);
+  }
 }

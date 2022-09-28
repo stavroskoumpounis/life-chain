@@ -1,7 +1,6 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import "@nomiclabs/hardhat-web3";
-import { ethers , web3} from "hardhat";
+import { ethers } from "hardhat";
 
 //const Clerk = hre.artifacts.require("Clerk");
 
@@ -20,9 +19,8 @@ describe("Clerk", function () {
     context("With the registration of a patient", async () => {
         it("Should register the patient with the right role", async function () {
             const { patientRole, clerk, otherAccount } = await loadFixture(registerPatientFixture);
-            //patient role in bytes32
-            let role ="0xe5786ee6f50ab1a5567cb3f3f6840a2f4ddbafdf4a35cb2c52d5b732b1e84a32";
-            await expect(clerk.connect(otherAccount).registerNodeClassifier(patientRole)).to.emit(clerk, "RegistrationSuccess").withArgs(web3.utils.asciiToHex(role), otherAccount.address);
+            
+            await expect(clerk.connect(otherAccount).registerNodeClassifier(patientRole)).to.emit(clerk, "RegistrationSuccess").withArgs(patientRole, otherAccount.address);
         })
         it("Should fail to register if the user has already been registered", async function () {
             const { patientRole, clerk, otherAccount } = await loadFixture(registerPatientFixture);
@@ -33,4 +31,5 @@ describe("Clerk", function () {
         });
 
     })
+    
 })
