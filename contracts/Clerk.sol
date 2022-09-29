@@ -4,19 +4,27 @@ pragma solidity ^0.8.7;
 
 import "hardhat/console.sol";
 import "./Classifier.sol";
+
+contract ClassifierInterface {
+  function registerNode(bytes32 role, address account) public returns(bool){}
+  function addRecord(string memory testRecord, uint index) external {}
+  function hasRole(bytes32 role, address account) public view returns (bool) {}
+}
 contract Clerk {
-    //Should probably change to contract address for 1 Classifier SC
-    Classifier private CLC = new Classifier();
-
-  event RegistrationSuccess(bytes32 indexed role, address indexed sender);
-  event AlreadyRegistered(bytes32 indexed role, address indexed account, address indexed sender);
   event Approval(address indexed _sender, address indexed _approved, uint256 indexed _tokenId);
-
-  modifier onlyOwnerOf(uint _recordId) {
-    //require(msg.sender == recordToOwner[_recordId]);
+  ClassifierInterface private CLC;
+  
+  /// @dev Check if method was called by a connected user with a wallet and not other contracts.
+  modifier onlyUser() {
+    require(msg.sender == tx.origin, "Reverting, Method can only be called directly by user.");
     _;
   }
-
+  modifier onlyOwnerOf(uint256 _tokenId){
+    _;
+  }
+  constructor(){
+    CLC = ClassifierInterface(address(new Classifier()));
+  }
   /**
   * @dev transaction approval from user
   * TEMPLATE
@@ -26,23 +34,17 @@ contract Clerk {
     emit Approval(msg.sender, _approved, _tokenId);
   }
 
-  function registerNodeClassifier(bytes32 role) public {
-    //add modifier
+  function registerNodeClassifier(bytes32 role) public onlyUser returns(bool){
     return _registerNodeClassifier(role);
   }
   /**
   * @dev Registers a patient if the account hasn't been registered already
   */
-  function _registerNodeClassifier(bytes32 role) private {
-    if (!CLC.hasRole(role,msg.sender)){
-      CLC.registerNode(role, msg.sender);
-      emit RegistrationSuccess (role, msg.sender);
-    } else{
-      emit AlreadyRegistered(role,msg.sender, msg.sender);
-    }
+  function _registerNodeClassifier(bytes32 role) private returns(bool){
+    return CLC.registerNode(role, msg.sender);
   }
 
-  function addRecordClassifier(string memory testRecord, uint index) private {
+  function addRecordClassifier(string memory testRecord, uint index) public {
     CLC.addRecord(testRecord, index);
   }
 }

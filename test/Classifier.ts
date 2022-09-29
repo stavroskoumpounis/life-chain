@@ -33,8 +33,7 @@ describe("Classifier", function () {
             const { patientRole, CLC, otherAccount } = await loadFixture(registerPatientFixture);
 
             await CLC.registerNode(patientRole, otherAccount.address);
-            await CLC.registerNode(patientRole, otherAccount.address);
-            expect(await CLC.hasRole(patientRole, otherAccount.address)).to.be.true;
+            expect(await CLC.registerNode(patientRole, otherAccount.address)).to.emit(CLC, "AlreadyRegistered");
         });
 
         xit("Should grant the right owner the default admin role", async function () {
@@ -51,11 +50,10 @@ describe("Classifier", function () {
             await CLC.registerNode(patientRole, owner.address);
             await expect ((CLC.connect(owner).addRecord(testRecord, 0))).to.emit(CLC, "RecordAdded").withArgs(owner.address, patientRole, testRecord);
         })
-        xit("Should fail to create a record if the user hasn't been registered", async function () {
+        it("Should fail to create a record if the user hasn't been registered", async function () {
             const { CLC, otherAccount, patientRole, utils, testRecord } = await loadFixture(registerPatientFixture);
-            await utils.shouldThrow(CLC.connect(otherAccount).addRecord(testRecord));
+            await utils.shouldThrow(CLC.connect(otherAccount).addRecord(testRecord, 0));
         });
-
     })
 
 })

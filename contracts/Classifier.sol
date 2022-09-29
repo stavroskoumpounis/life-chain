@@ -8,13 +8,18 @@ import "./Ownership.sol";
 contract OwnershipInterface {
         function addRecord(string memory testRecord) external {}
         function checkRecord(uint index) public view returns(bool){}
-
-
 }
 contract Classifier is AccessControl{
     event RecordAdded(address indexed _sender, bytes32 indexed role, string testRecord);
+    event AlreadyRegistered(bytes32 indexed role, address indexed account, address indexed sender);
 
     mapping(address => address) private accountToOwnership;
+
+    /// @dev Check if method was called by a connected user with a wallet and not other contracts.
+    modifier onlyUser() {
+        require(msg.sender == tx.origin, "Reverting, Method can only be called directly by user.");
+        _;
+    }
     constructor() {
         //_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -22,10 +27,21 @@ contract Classifier is AccessControl{
     bytes32 private constant PATIENT = keccak256(abi.encodePacked("PATIENT"));
     // 0x4f74ea76300371cf4b3e29c122169252c5f1569c798460a01c5ca3c3efa5ad71
     bytes32 private constant GP = keccak256(abi.encodePacked("GP"));
+    //add modifier-fix error
+    function registerNode(bytes32 role, address account) public returns(bool){
+        return _registerNode(role, account);
+    }
+    //could overide grantRole to return true for succesful registration.
+    function _registerNode(bytes32 role, address account) internal returns(bool){
+        if (!hasRole(role,account)){
+            _grantRole(role, account);
+            accountToOwnership[account] = address(new Ownership());
+            return true;
+        } else{
+            emit AlreadyRegistered(role,msg.sender, msg.sender);
+            return false;
+        }
 
-    function registerNode(bytes32 role, address account) public {
-        _grantRole(role, account);
-        accountToOwnership[account] = address(new Ownership());
     }
 
     /*

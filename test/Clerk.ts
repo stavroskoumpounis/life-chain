@@ -19,14 +19,14 @@ describe("Clerk", function () {
     context("With the registration of a patient", async () => {
         it("Should register the patient with the right role", async function () {
             const { patientRole, clerk, otherAccount } = await loadFixture(registerPatientFixture);
-            
-            await expect(clerk.connect(otherAccount).registerNodeClassifier(patientRole)).to.emit(clerk, "RegistrationSuccess").withArgs(patientRole, otherAccount.address);
+            expect(await clerk.connect(otherAccount).callStatic.registerNodeClassifier(patientRole)).to.be.true;
+            //await expect(clerk.connect(otherAccount).registerNodeClassifier(patientRole)).to.emit(clerk, "RegistrationSuccess").withArgs(patientRole, otherAccount.address);
         })
         it("Should fail to register if the user has already been registered", async function () {
             const { patientRole, clerk, otherAccount } = await loadFixture(registerPatientFixture);
           
             await clerk.connect(otherAccount).registerNodeClassifier(patientRole)
-            await expect((clerk.connect(otherAccount).registerNodeClassifier(patientRole))).to.emit(clerk, "AlreadyRegistered")
+            expect((await clerk.connect(otherAccount).callStatic.registerNodeClassifier(patientRole))).to.be.false;
 
         });
 
