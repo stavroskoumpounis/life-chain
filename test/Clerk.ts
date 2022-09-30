@@ -1,18 +1,57 @@
-import { artifacts, assert, web3 } from "hardhat";
+import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { expect } from "chai";
+import { ethers } from "hardhat";
 
-const Clerk = artifacts.require("Clerk");
+//const Clerk = hre.artifacts.require("Clerk");
 
-describe("Clerk contract", function() {
-    let accounts;
+describe("Clerk", function () {
 
-    before(async function () {
-        accounts = await web3.eth.getAccounts();
-    })
+    async function registerPatientFixture() {
+        const patientRole = "0xe5786ee6f50ab1a5567cb3f3f6840a2f4ddbafdf4a35cb2c52d5b732b1e84a32";
+        // Contracts are deployed using the first signer/account by default
+        const [owner, otherAccount] = await ethers.getSigners();
+        const Clerk = await ethers.getContractFactory("Clerk");
+        const clerk = await Clerk.deploy();
 
-    describe("Deployment", function () {
-        it("Should deploy with the right message", async function () {
-            const clerk = await Clerk.new("I AM GROOT?");
-            assert.equal(await clerk.getGreet(), "I AM GROOT?");
+        const utils = require("./helpers/utils");
+        var obj = {
+            table: [] as any
+        };
+        obj.table.push({id: 0, logScore: 15});
+        var testRecord = JSON.stringify(obj);
+    
+        return { clerk, owner, otherAccount, patientRole, utils, testRecord};
+    }
+  
+    context("With the registration of a patient", async () => {
+        it("Should register the patient with the right role", async function () {
+            const { patientRole, clerk, owner } = await loadFixture(registerPatientFixture);
+            expect(await clerk.connect(owner).callStatic.registerNodeClassifier(patientRole)).to.be.true;
+            //await expect(clerk.connect(otherAccount).registerNodeClassifier(patientRole)).to.emit(clerk, "RegistrationSuccess").withArgs(patientRole, otherAccount.address);
         })
+        it("Should fail to register if the user has already been registered", async function () {
+            const { patientRole, clerk, otherAccount } = await loadFixture(registerPatientFixture);
+          
+            await clerk.connect(otherAccount).registerNodeClassifier(patientRole)
+            expect((await clerk.connect(otherAccount).callStatic.registerNodeClassifier(patientRole))).to.be.false;
+
+        });
+
     })
+
+    
+    context("With the addition of a record", async () => {
+        it("Should add the record with the correct user", async function () {
+            const {owner, otherAccount, clerk, patientRole, testRecord } = await loadFixture(registerPatientFixture);
+            //console.log("From test file: Account: %s and testRecord: %s", otherAccount.address, testRecord);
+            //register user
+            await clerk.connect(otherAccount).registerNodeClassifier(patientRole);
+            expect (await (clerk.connect(otherAccount).addRecordOwnership(testRecord))).to.emit(clerk, "RecordAdded").withArgs(otherAccount.address, patientRole, testRecord);
+        })
+        it("Should fail to create a record if the user hasn't been registered", async function () {
+            const { clerk, otherAccount, utils, testRecord } = await loadFixture(registerPatientFixture);
+            await utils.shouldThrow(clerk.connect(otherAccount).addRecordOwnership(testRecord));
+        });
+    })
+    
 })
