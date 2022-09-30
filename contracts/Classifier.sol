@@ -5,12 +5,7 @@ pragma solidity ^0.8.7;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./Ownership.sol";
-contract OwnershipInterface {
-        function addRecord(string memory testRecord) external {}
-        function checkRecord(uint index) public view returns(bool){}
-}
 contract Classifier is AccessControl{
-    event RecordAdded(address indexed _sender, bytes32 indexed role, string testRecord);
     event AlreadyRegistered(bytes32 indexed role, address indexed account, address indexed sender);
 
     mapping(address => address) private accountToOwnership;
@@ -35,7 +30,7 @@ contract Classifier is AccessControl{
     function _registerNode(bytes32 role, address account) internal returns(bool){
         if (!hasRole(role,account)){
             _grantRole(role, account);
-            accountToOwnership[account] = address(new Ownership());
+            accountToOwnership[account] = address(new Ownership(account));
             return true;
         } else{
             emit AlreadyRegistered(role,msg.sender, msg.sender);
@@ -43,18 +38,11 @@ contract Classifier is AccessControl{
         }
 
     }
-
     /*
-    * patient record adding -- GP adding record TODO
-    * onlyRole reverts "account X missing role y"
-    * which also serves a registration check.
+    * gets Ownership Contract mapped to address
     */
-    function addRecord(string memory testRecord, uint index) external onlyRole(PATIENT){
-        //call ownershipt SC to add
-        OwnershipInterface OC = OwnershipInterface(accountToOwnership[msg.sender]);
-        OC.addRecord(testRecord);
-        console.log("From OC: recordFound:%s", OC.checkRecord(index));
-        console.log("From Smart Con: Account: %s and testRecord: %s", msg.sender, testRecord );
-        emit RecordAdded(msg.sender, PATIENT, testRecord);
+    function getAccountToOwnership(address account) external view returns(address){
+        require(hasRole(PATIENT,account), "failed require: account is missing patient role");
+        return accountToOwnership[account];
     }
 }

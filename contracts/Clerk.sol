@@ -7,13 +7,16 @@ import "./Classifier.sol";
 
 contract ClassifierInterface {
   function registerNode(bytes32 role, address account) public returns(bool){}
-  function addRecord(string memory testRecord, uint index) external {}
-  function hasRole(bytes32 role, address account) public view returns (bool) {}
+  function getAccountToOwnership(address account) external view returns(address){}
+}
+contract OwnershipInterface {
+    function addRecord(string memory testRecord, address _sender) external {}
 }
 contract Clerk {
   event Approval(address indexed _sender, address indexed _approved, uint256 indexed _tokenId);
+  event RecordAdded(address indexed _sender, string testRecord);
+
   ClassifierInterface private CLC;
-  
   /// @dev Check if method was called by a connected user with a wallet and not other contracts.
   modifier onlyUser() {
     require(msg.sender == tx.origin, "Reverting, Method can only be called directly by user.");
@@ -29,7 +32,7 @@ contract Clerk {
   * @dev transaction approval from user
   * TEMPLATE
   */
-  function approve(address _approved, uint256 _tokenId) external payable onlyOwnerOf(_tokenId) {
+  function approve(address _approved, uint256 _tokenId) public payable onlyOwnerOf(_tokenId) {
     //recordApprovals[_tokenId] = _approved;
     emit Approval(msg.sender, _approved, _tokenId);
   }
@@ -43,8 +46,13 @@ contract Clerk {
   function _registerNodeClassifier(bytes32 role) private returns(bool){
     return CLC.registerNode(role, msg.sender);
   }
-
-  function addRecordClassifier(string memory testRecord, uint index) public {
-    CLC.addRecord(testRecord, index);
+  /*
+    * patient record adding -- GP adding record TODO
+    * require in getAccountToOwnership reverts "account missing role patient"
+    */
+  function addRecordOwnership(string memory testRecord) public {
+    OwnershipInterface OC = OwnershipInterface(CLC.getAccountToOwnership(msg.sender));
+    OC.addRecord(testRecord, msg.sender);
+    emit RecordAdded(msg.sender, testRecord);
   }
 }

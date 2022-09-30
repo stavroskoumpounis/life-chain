@@ -8,7 +8,7 @@ describe("Ownership", function () {
         // Contracts are deployed using the first signer/account by default
         const [owner, otherAccount] = await ethers.getSigners();
         const Ownership = await ethers.getContractFactory("Ownership");
-        const ownshp = await Ownership.deploy();
+        const ownshp = await Ownership.deploy(owner.address);
 
         var obj = {
             table: [] as any
@@ -24,13 +24,13 @@ describe("Ownership", function () {
   
     context("With the addition of a record", async () => {
         it("Should register the record with the correct user", async function () {
-            const { ownshp, owner, otherAccount, CLC, patientRole, testRecord } = await loadFixture(registerPatientFixture);
+            const { ownshp, owner, CLC, patientRole, testRecord } = await loadFixture(registerPatientFixture);
             
             //register user
-            await CLC.registerNode(patientRole, otherAccount.address);
-            await ownshp.connect(owner).addRecord(testRecord);
+            await CLC.registerNode(patientRole, owner.address);
+            await ownshp.addRecord(testRecord, owner.address);
 
-            expect(await ownshp.connect(owner).checkRecord(0)).to.be.true;
+            expect(await ownshp.checkRecord(0)).to.be.true;
         })
     })
 })

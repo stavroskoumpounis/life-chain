@@ -5,7 +5,6 @@ pragma solidity ^0.8.7;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-
 contract Ownership is Ownable{
     struct RecordData{
         mapping(address => bool) viewAccess;
@@ -17,13 +16,15 @@ contract Ownership is Ownable{
 
     uint idx;
     RecordData[] private recordData;
-    constructor() {
+    constructor(address account) {
+        _transferOwnership(account);
         idx = 0;
     }
     /*
     * Only the owner of the OC can add a record
     */
-    function addRecord(string memory testRecord) external onlyOwner {
+    function addRecord(string memory testRecord, address _sender) external {
+        require(_sender == owner(), "Owner check: sender is not the owner");
         RecordData storage newRecord = recordData.push(); 
         newRecord.viewAccess[msg.sender] = true;
         newRecord.id = idx;
@@ -33,11 +34,10 @@ contract Ownership is Ownable{
         newRecord.plainText = testRecord;
     }
 
-    function checkRecord(uint index) public view onlyOwner returns(bool){
-        console.log("found record with id:%s",recordData[index].id);
-        console.log("recordHash:");
-        console.logBytes32(recordData[index].recordHash);
-        console.log("recordTxt: %s",recordData[index].plainText);
+    function checkRecord(uint index) public view returns(bool){
+        // console.log("recordHash:");
+        // console.logBytes32(recordData[index].recordHash);
+        console.log("found record: %s",recordData[index].plainText);
         return true;
     }
     

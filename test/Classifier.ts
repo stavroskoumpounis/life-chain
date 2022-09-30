@@ -42,18 +42,4 @@ describe("Classifier", function () {
     })
 
 
-    context("With the addition of a record", async () => {
-        it("Should register the record with the correct user", async function () {
-            const {owner, otherAccount, CLC, patientRole, testRecord } = await loadFixture(registerPatientFixture);
-            console.log("From test file: Account: %s and testRecord: %s", otherAccount.address, testRecord);
-            //register user
-            await CLC.registerNode(patientRole, owner.address);
-            await expect ((CLC.connect(owner).addRecord(testRecord, 0))).to.emit(CLC, "RecordAdded").withArgs(owner.address, patientRole, testRecord);
-        })
-        it("Should fail to create a record if the user hasn't been registered", async function () {
-            const { CLC, otherAccount, patientRole, utils, testRecord } = await loadFixture(registerPatientFixture);
-            await utils.shouldThrow(CLC.connect(otherAccount).addRecord(testRecord, 0));
-        });
-    })
-
 })
