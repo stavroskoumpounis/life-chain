@@ -6,9 +6,10 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./Ownership.sol";
 contract Classifier is AccessControl{
-    event AlreadyRegistered(bytes32 indexed role, address indexed account, address indexed sender);
+    //event AlreadyRegistered(bytes32 indexed role, address indexed account, address indexed sender, string msg);
 
     mapping(address => address) private accountToOwnership;
+    //mapping(address => bytes32) private accountToPublicKey;
 
     /// @dev Check if method was called by a connected user with a wallet and not other contracts.
     modifier onlyUser() {
@@ -23,6 +24,7 @@ contract Classifier is AccessControl{
     // 0x4f74ea76300371cf4b3e29c122169252c5f1569c798460a01c5ca3c3efa5ad71
     bytes32 private constant GP = keccak256(abi.encodePacked("GP"));
     //add modifier-fix error
+    
     function registerNode(bytes32 role, address account) public returns(bool){
         return _registerNode(role, account);
     }
@@ -31,18 +33,25 @@ contract Classifier is AccessControl{
         if (!hasRole(role,account)){
             _grantRole(role, account);
             accountToOwnership[account] = address(new Ownership(account));
+            // accountToPublicKey[account] = pubKey;
             return true;
         } else{
-            emit AlreadyRegistered(role,msg.sender, msg.sender);
             return false;
         }
-
     }
     /*
     * gets Ownership Contract mapped to address
     */
-    function getAccountToOwnership(address account) external view returns(address){
+    function _getAccountToOwnership(address account) public view returns(address){
         require(hasRole(PATIENT,account), "failed require: account is missing patient role");
         return accountToOwnership[account];
     }
+
+    // function getAccountToOwnership() public view onlyUser onlyRole(PATIENT) returns(address){
+    //     return accountToOwnership[msg.sender];
+    // }
+
+    // function getAccountToPublicKey() public view onlyUser onlyRole(PATIENT) returns(bytes32){
+    //     return accountToPublicKey[msg.sender];
+    // }
 }

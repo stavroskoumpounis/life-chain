@@ -8,37 +8,31 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Ownership is Ownable{
     struct RecordData{
         mapping(address => bool) viewAccess;
-        bytes32 queryLink;
+        bytes32 linkHash;
         bytes32 recordHash;
-        string plainText;
         uint id;
     }
 
-    uint idx;
     RecordData[] private recordData;
     constructor(address account) {
         _transferOwnership(account);
-        idx = 0;
     }
     /*
     * Only the owner of the OC can add a record
     */
-    function addRecord(string memory testRecord, address _sender) external {
+    function addRecord(bytes32 _recordHash, bytes32 _linkHash, address _sender) public {
         require(_sender == owner(), "Owner check: sender is not the owner");
         RecordData storage newRecord = recordData.push(); 
-        newRecord.viewAccess[msg.sender] = true;
-        newRecord.id = idx;
-        idx++;
-        //temporary simple adding of record -- this should store record data elsewhere
-        newRecord.recordHash = keccak256(abi.encodePacked(testRecord));
-        newRecord.plainText = testRecord;
+        newRecord.viewAccess[_sender] = true;
+        newRecord.id = recordData.length;
+        newRecord.recordHash = _recordHash;
+        newRecord.linkHash = _linkHash;
     }
 
-    function checkRecord(uint index) public view returns(bool){
+    function checkRecord(uint index) public view onlyOwner returns(bytes32){
+        require(recordData[index].viewAccess[msg.sender], "no view access");
         // console.log("recordHash:");
-        // console.logBytes32(recordData[index].recordHash);
-        console.log("found record: %s",recordData[index].plainText);
-        return true;
+        console.logBytes32(recordData[index].recordHash);
+        return recordData[index].recordHash;
     }
-    
 }

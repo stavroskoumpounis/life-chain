@@ -19,8 +19,20 @@ describe("Clerk", function () {
         };
         obj.table.push({id: 0, logScore: 15});
         var testRecord = JSON.stringify(obj);
+
+        // applying sign-then-encrypt
+        let signedRecord = (await otherAccount.signMessage(testRecord)).toString();
+        // console.log("\nthis is the signedRecord: %s",signedRecord);
+        let signHashRecord = ethers.utils.hashMessage(signedRecord);
+        // console.log("this is the singedhashedRecord: %s",signHashRecord);
+
+        let signedLink = (await otherAccount.signMessage("https://this.is.a.query.link")).toString();
+        // console.log("this is the signedQuery: %s",signedLink);
+        let signHashLink = ethers.utils.hashMessage(signedLink);
+        // console.log("this is the signHashQuery: %s",signHashLink);
     
-        return { clerk, owner, otherAccount, patientRole, utils, testRecord};
+        return { clerk, owner, otherAccount, patientRole, utils, testRecord, signHashLink, signHashRecord
+        };
     }
   
     context("With the registration of a patient", async () => {
@@ -30,11 +42,11 @@ describe("Clerk", function () {
             //await expect(clerk.connect(otherAccount).registerNodeClassifier(patientRole)).to.emit(clerk, "RegistrationSuccess").withArgs(patientRole, otherAccount.address);
         })
         it("Should fail to register if the user has already been registered", async function () {
-            const { patientRole, clerk, otherAccount } = await loadFixture(registerPatientFixture);
+            const { patientRole, clerk, otherAccount,utils } = await loadFixture(registerPatientFixture);
           
             await clerk.connect(otherAccount).registerNodeClassifier(patientRole)
-            expect((await clerk.connect(otherAccount).callStatic.registerNodeClassifier(patientRole))).to.be.false;
-
+            //expect((await clerk.connect(otherAccount).callStatic.registerNodeClassifier(patientRole))).to.be.false;
+            await utils.shouldThrow(clerk.connect(otherAccount).callStatic.registerNodeClassifier(patientRole));
         });
 
     })
@@ -42,15 +54,16 @@ describe("Clerk", function () {
     
     context("With the addition of a record", async () => {
         it("Should add the record with the correct user", async function () {
-            const {owner, otherAccount, clerk, patientRole, testRecord } = await loadFixture(registerPatientFixture);
+            const { otherAccount, clerk, patientRole, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
             //console.log("From test file: Account: %s and testRecord: %s", otherAccount.address, testRecord);
             //register user
+
             await clerk.connect(otherAccount).registerNodeClassifier(patientRole);
-            expect (await (clerk.connect(otherAccount).addRecordOwnership(testRecord))).to.emit(clerk, "RecordAdded").withArgs(otherAccount.address, patientRole, testRecord);
+            expect (await (clerk.connect(otherAccount).addRecordOwnership(signHashRecord, signHashLink))).to.emit(clerk, "RecordAdded").withArgs(otherAccount.address, signHashRecord);
         })
         it("Should fail to create a record if the user hasn't been registered", async function () {
-            const { clerk, otherAccount, utils, testRecord } = await loadFixture(registerPatientFixture);
-            await utils.shouldThrow(clerk.connect(otherAccount).addRecordOwnership(testRecord));
+            const { clerk, otherAccount, utils, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
+            await utils.shouldThrow(clerk.connect(otherAccount).addRecordOwnership(signHashRecord, signHashLink));
         });
     })
     

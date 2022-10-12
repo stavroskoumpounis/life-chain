@@ -7,14 +7,15 @@ import "./Classifier.sol";
 
 contract ClassifierInterface {
   function registerNode(bytes32 role, address account) public returns(bool){}
-  function getAccountToOwnership(address account) external view returns(address){}
+  function _getAccountToOwnership(address account) external view returns(address){}
 }
 contract OwnershipInterface {
-    function addRecord(string memory testRecord, address _sender) external {}
+    function addRecord(bytes32 _recordHash, bytes32 _linkHash, address _sender) public {}
 }
 contract Clerk {
   event Approval(address indexed _sender, address indexed _approved, uint256 indexed _tokenId);
-  event RecordAdded(address indexed _sender, string testRecord);
+  event RecordAdded(address indexed _sender, bytes32 indexed recordHash);
+  error AlreadyRegistered(address account, string msg);
 
   ClassifierInterface private CLC;
   /// @dev Check if method was called by a connected user with a wallet and not other contracts.
@@ -43,16 +44,21 @@ contract Clerk {
   /**
   * @dev Registers a patient if the account hasn't been registered already
   */
-  function _registerNodeClassifier(bytes32 role) private returns(bool){
-    return CLC.registerNode(role, msg.sender);
+  function _registerNodeClassifier(bytes32 role) private returns(bool){    
+    if (!CLC.registerNode(role, msg.sender)){
+      revert AlreadyRegistered({
+                account: msg.sender,
+                msg: "user already registered"});
+    }
+    return true;
   }
   /*
-    * patient record adding -- GP adding record TODO
+    * Patient record adding -- GP adding record TODO
     * require in getAccountToOwnership reverts "account missing role patient"
     */
-  function addRecordOwnership(string memory testRecord) public {
-    OwnershipInterface OC = OwnershipInterface(CLC.getAccountToOwnership(msg.sender));
-    OC.addRecord(testRecord, msg.sender);
-    emit RecordAdded(msg.sender, testRecord);
+  function addRecordOwnership(bytes32 recordHash, bytes32 linkHash) public {
+    OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));
+    OC.addRecord(recordHash, linkHash , msg.sender);
+    emit RecordAdded(msg.sender, recordHash);
   }
 }
