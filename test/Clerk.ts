@@ -1,6 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import web3 from "web3";
 
 //const Clerk = hre.artifacts.require("Clerk");
 
@@ -9,11 +10,15 @@ describe("Clerk", function () {
     async function registerPatientFixture() {
         const patientRole = "0xe5786ee6f50ab1a5567cb3f3f6840a2f4ddbafdf4a35cb2c52d5b732b1e84a32";
         // Contracts are deployed using the first signer/account by default
-        const [owner, otherAccount] = await ethers.getSigners();
+        const [owner, otherAccount, account3] = await ethers.getSigners();
         const Clerk = await ethers.getContractFactory("Clerk");
         const clerk = await Clerk.deploy();
 
+        const prov = await ethers.getDefaultProvider();
+
         const utils = require("./helpers/utils");
+        const getPK = require("./helpers/pubkey");
+
         var obj = {
             table: [] as any
         };
@@ -31,12 +36,11 @@ describe("Clerk", function () {
         let signHashLink = ethers.utils.hashMessage(signedLink);
         // console.log("this is the signHashQuery: %s",signHashLink);
     
-        return { clerk, owner, otherAccount, patientRole, utils, testRecord, signHashLink, signHashRecord
-        };
+        return { clerk, owner, otherAccount, patientRole, utils, getPK, testRecord, signHashLink, signHashRecord, prov, account3};
     }
   
-    context("With the registration of a patient", async () => {
-        it("Should register the patient with the right role", async function () {
+    xcontext("With the registration of a patient", async () => {
+        xit("Should register the patient with the right role", async function () {
             const { patientRole, clerk, owner } = await loadFixture(registerPatientFixture);
             expect(await clerk.connect(owner).callStatic.registerNodeClassifier(patientRole)).to.be.true;
             //await expect(clerk.connect(otherAccount).registerNodeClassifier(patientRole)).to.emit(clerk, "RegistrationSuccess").withArgs(patientRole, otherAccount.address);
@@ -44,7 +48,12 @@ describe("Clerk", function () {
         it("Should fail to register if the user has already been registered", async function () {
             const { patientRole, clerk, otherAccount,utils } = await loadFixture(registerPatientFixture);
           
-            await clerk.connect(otherAccount).registerNodeClassifier(patientRole)
+            const tx = await clerk.connect(otherAccount).registerNodeClassifier(patientRole);
+            const receipt = await tx.wait();
+
+            console.log(tx);
+            console.log(receipt);
+
             //expect((await clerk.connect(otherAccount).callStatic.registerNodeClassifier(patientRole))).to.be.false;
             await utils.shouldThrow(clerk.connect(otherAccount).callStatic.registerNodeClassifier(patientRole));
         });
@@ -52,7 +61,7 @@ describe("Clerk", function () {
     })
 
     
-    context("With the addition of a record", async () => {
+    xcontext("With the addition of a record", async () => {
         it("Should add the record with the correct user", async function () {
             const { otherAccount, clerk, patientRole, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
             //console.log("From test file: Account: %s and testRecord: %s", otherAccount.address, testRecord);
@@ -66,5 +75,66 @@ describe("Clerk", function () {
             await utils.shouldThrow(clerk.connect(otherAccount).addRecordOwnership(signHashRecord, signHashLink));
         });
     })
-    
+
+    context("With retrieving the users public key on the front-end", async () =>{
+        it("Should register the correct public key from the metamask wallet", async function () {
+            const { owner, clerk, prov, otherAccount, account3, patientRole, signHashLink, signHashRecord, getPK } = await loadFixture(registerPatientFixture);
+            
+            //const tx = await clerk.connect(owner).registerNodeClassifier(patientRole);
+                const patientHash = ethers.utils.id("PATIENT");
+				console.log("ethereum object found...executing registerNodeCLC");
+				let tx = await clerk.connect(otherAccount).hasRoleClassifier(patientHash);
+				//wait for transaction to be mined
+                
+				const receipt = await tx.wait();
+				console.log(tx);
+
+                const pubKey = await getPK.getPublicKey(tx);
+
+                const EthCrypto = require('eth-crypto');
+
+                console.log(pubKey.substring(2,pubKey.length));
+
+                const compresssed = EthCrypto.publicKey.compress(pubKey.substring(2,pubKey.length));
+
+                console.log("comp unhex","0x"+compresssed.substring(2));
+
+                //console.log("back to normal: ", "04"+EthCrypto.publicKey.decompress(compresssed));
+
+                //expect(pubKey).to.equal("0x04"+EthCrypto.publicKey.decompress(compresssed));
+
+                // console.log(compresssed);
+                // console.log(patientHash);
+                const prefix = "0x"+compresssed.substring(0,2);
+                console.log("this prefix before:",prefix);
+                //expect(receipt.status).to.be.equal(1);
+				if(receipt.status === 1){
+                    let tx2 = await clerk.connect(owner).registerNodeClassifier(patientHash, '0x'+compresssed.substring(2), prefix);
+                    
+                    let tx3 = await clerk.connect(owner).getPublicKeyClassifier();
+
+                    // console.log("this must be pubkeyX:",tx3[0]);
+                    // console.log("this the prefix:",tx3[1]);
+
+
+                    // console.log(prefix === tx3[1]);
+                    // console.log("0x"+compresssed.substring(2) === tx3[0]);
+
+                    const compresssedRetrieved = tx3[1].substring(2)+tx3[0].substring(2);
+                    // console.log("compresRetriev",compresssedRetrieved);
+
+                    const decompressed = "0x04"+EthCrypto.publicKey.decompress(compresssedRetrieved);
+                    
+				 }
+
+            // // var data = await getPK.getPublicKeyAndAddress(tx);
+
+            // console.log("address is:%s", randWallet.address);
+            // console.log("public key is: %s \n", randWallet.publicKey);
+
+            // var data2 = await getPK.getPublicKey(tx);
+
+            
+        })
+    })
 })

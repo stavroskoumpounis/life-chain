@@ -6,8 +6,10 @@ import "hardhat/console.sol";
 import "./Classifier.sol";
 
 contract ClassifierInterface {
-  function registerNode(bytes32 role, address account) public returns(bool){}
+  function registerNode(bytes32 role, bytes32 _pubKeyX, bytes1 _pubKeyPrefix, address account) external returns(bool){}
+  function hasRole(bytes32 role, address account) public view returns(bool){}
   function _getAccountToOwnership(address account) external view returns(address){}
+  function getAccountToPublicKey(address account) external view returns(bytes32, bytes1){}
 }
 contract OwnershipInterface {
     function addRecord(bytes32 _recordHash, bytes32 _linkHash, address _sender) public {}
@@ -38,23 +40,29 @@ contract Clerk {
     emit Approval(msg.sender, _approved, _tokenId);
   }
 
-  function registerNodeClassifier(bytes32 role) public onlyUser returns(bool){
-    return _registerNodeClassifier(role);
+
+  function getPublicKeyClassifier() public view onlyUser returns(bytes32, bytes1){
+    return (CLC.getAccountToPublicKey(msg.sender));
+  }  
+
+  function hasRoleClassifier(bytes32 role) public onlyUser returns(bool) {
+    if (CLC.hasRole(role, msg.sender)){
+      revert AlreadyRegistered({
+        account: msg.sender,
+        msg: "user already registered"});
+    }
+    return true;
   }
   /**
   * @dev Registers a patient if the account hasn't been registered already
   */
-  function _registerNodeClassifier(bytes32 role) private returns(bool){    
-    if (!CLC.registerNode(role, msg.sender)){
-      revert AlreadyRegistered({
-                account: msg.sender,
-                msg: "user already registered"});
-    }
-    return true;
+  function registerNodeClassifier(bytes32 role, bytes32 pubKeyX, bytes1 pubKeyPrefix) public onlyUser returns(bool){    
+    return CLC.registerNode(role, pubKeyX, pubKeyPrefix, msg.sender);
   }
   /*
     * Patient record adding -- GP adding record TODO
-    * require in getAccountToOwnership reverts "account missing role patient"
+    * getAccountToOwnership reverts if caller!=patient
+    * to limit record addition to patients only.
     */
   function addRecordOwnership(bytes32 recordHash, bytes32 linkHash) public {
     OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));

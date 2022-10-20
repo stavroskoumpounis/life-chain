@@ -8,8 +8,13 @@ import "./Ownership.sol";
 contract Classifier is AccessControl{
     //event AlreadyRegistered(bytes32 indexed role, address indexed account, address indexed sender, string msg);
 
+    struct PublicKey{
+        bytes32 pubKeyX;
+        bytes1 pubKeyPrefix;
+    }
+
     mapping(address => address) private accountToOwnership;
-    //mapping(address => bytes32) private accountToPublicKey;
+    mapping(address => PublicKey) private accountToPublicKey;
 
     /// @dev Check if method was called by a connected user with a wallet and not other contracts.
     modifier onlyUser() {
@@ -25,25 +30,28 @@ contract Classifier is AccessControl{
     bytes32 private constant GP = keccak256(abi.encodePacked("GP"));
     //add modifier-fix error
     
-    function registerNode(bytes32 role, address account) public returns(bool){
-        return _registerNode(role, account);
-    }
+    // function registerNode(bytes32 role, address account) public view returns(bool){
+    //     if (!hasRole(role,account)){
+    //         return true;
+    //     }
+    //     return false;
+    // }
     //could overide grantRole to return true for succesful registration.
-    function _registerNode(bytes32 role, address account) internal returns(bool){
-        if (!hasRole(role,account)){
-            _grantRole(role, account);
+    function registerNode(bytes32 role, bytes32 _pubKeyX, bytes1 _pubKeyPrefix, address account) external returns(bool) {
+        _grantRole(role, account);
+        if(role == PATIENT){
             accountToOwnership[account] = address(new Ownership(account));
-            // accountToPublicKey[account] = pubKey;
-            return true;
-        } else{
-            return false;
         }
+        accountToPublicKey[account].pubKeyX = _pubKeyX;
+        accountToPublicKey[account].pubKeyPrefix = _pubKeyPrefix;
+        return true;
     }
     /*
     * gets Ownership Contract mapped to address
+    * require limits access to patients only
     */
     function _getAccountToOwnership(address account) public view returns(address){
-        require(hasRole(PATIENT,account), "failed require: account is missing patient role");
+        require(hasRole(PATIENT,account), "Access blocked : account is missing patient role");
         return accountToOwnership[account];
     }
 
@@ -51,7 +59,7 @@ contract Classifier is AccessControl{
     //     return accountToOwnership[msg.sender];
     // }
 
-    // function getAccountToPublicKey() public view onlyUser onlyRole(PATIENT) returns(bytes32){
-    //     return accountToPublicKey[msg.sender];
-    // }
+    function getAccountToPublicKey(address account) external view returns(bytes32, bytes1){
+        return (accountToPublicKey[account].pubKeyX, accountToPublicKey[account].pubKeyPrefix);
+    }
 }
