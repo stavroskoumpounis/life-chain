@@ -39,46 +39,46 @@ describe("Clerk", function () {
         return { clerk, owner, otherAccount, patientRole, utils, getPK, testRecord, signHashLink, signHashRecord, prov, account3};
     }
   
-    xcontext("With the registration of a patient", async () => {
-        xit("Should register the patient with the right role", async function () {
+    context("With the registration of a patient", async () => {
+        it("Should register the patient with the right role", async function () {
             const { patientRole, clerk, owner } = await loadFixture(registerPatientFixture);
-            expect(await clerk.connect(owner).callStatic.registerNodeClassifier(patientRole)).to.be.true;
+            expect(await clerk.connect(owner).callStatic.registerNodeClassifier(patientRole,ethers.utils.id("0x00"),"0x02")).to.be.true;
             //await expect(clerk.connect(otherAccount).registerNodeClassifier(patientRole)).to.emit(clerk, "RegistrationSuccess").withArgs(patientRole, otherAccount.address);
         })
         it("Should fail to register if the user has already been registered", async function () {
             const { patientRole, clerk, otherAccount,utils } = await loadFixture(registerPatientFixture);
           
-            const tx = await clerk.connect(otherAccount).registerNodeClassifier(patientRole);
+            const tx = await clerk.connect(otherAccount).registerNodeClassifier(patientRole,ethers.utils.id("0x00"),"0x02");
             const receipt = await tx.wait();
 
-            console.log(tx);
-            console.log(receipt);
+            // console.log(tx);
+            // console.log(receipt);
 
             //expect((await clerk.connect(otherAccount).callStatic.registerNodeClassifier(patientRole))).to.be.false;
-            await utils.shouldThrow(clerk.connect(otherAccount).callStatic.registerNodeClassifier(patientRole));
+            await utils.shouldThrow(clerk.connect(otherAccount).callStatic.hasRoleClassifier(patientRole));
         });
 
     })
 
     
-    xcontext("With the addition of a record", async () => {
+    context("With the addition of a record", async () => {
         it("Should add the record with the correct user", async function () {
             const { otherAccount, clerk, patientRole, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
             //console.log("From test file: Account: %s and testRecord: %s", otherAccount.address, testRecord);
             //register user
 
-            await clerk.connect(otherAccount).registerNodeClassifier(patientRole);
-            expect (await (clerk.connect(otherAccount).addRecordOwnership(signHashRecord, signHashLink))).to.emit(clerk, "RecordAdded").withArgs(otherAccount.address, signHashRecord);
+            await clerk.connect(otherAccount).registerNodeClassifier(patientRole, ethers.utils.id("0x00"),"0x02");
+            expect (await (clerk.connect(otherAccount).addRecordOwnership(signHashRecord, signHashLink, ethers.utils.id(signHashRecord)))).to.emit(clerk, "RecordAdded").withArgs(otherAccount.address, signHashRecord);
         })
         it("Should fail to create a record if the user hasn't been registered", async function () {
             const { clerk, otherAccount, utils, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
-            await utils.shouldThrow(clerk.connect(otherAccount).addRecordOwnership(signHashRecord, signHashLink));
+            await utils.shouldThrow(clerk.connect(otherAccount).addRecordOwnership(signHashRecord, signHashLink, ethers.utils.id(signHashRecord)));
         });
     })
 
     context("With retrieving the users public key on the front-end", async () =>{
         it("Should register the correct public key from the metamask wallet", async function () {
-            const { owner, clerk, prov, otherAccount, account3, patientRole, signHashLink, signHashRecord, getPK } = await loadFixture(registerPatientFixture);
+            const { owner, clerk, otherAccount, getPK } = await loadFixture(registerPatientFixture);
             
             //const tx = await clerk.connect(owner).registerNodeClassifier(patientRole);
                 const patientHash = ethers.utils.id("PATIENT");
@@ -87,26 +87,26 @@ describe("Clerk", function () {
 				//wait for transaction to be mined
                 
 				const receipt = await tx.wait();
-				console.log(tx);
+				//console.log(tx);
 
                 const pubKey = await getPK.getPublicKey(tx);
 
                 const EthCrypto = require('eth-crypto');
 
-                console.log(pubKey.substring(2,pubKey.length));
+                //console.log(pubKey.substring(2,pubKey.length));
 
                 const compresssed = EthCrypto.publicKey.compress(pubKey.substring(2,pubKey.length));
 
-                console.log("comp unhex","0x"+compresssed.substring(2));
+                //console.log("comp unhex","0x"+compresssed.substring(2));
 
-                //console.log("back to normal: ", "04"+EthCrypto.publicKey.decompress(compresssed));
+                // console.log("back to normal: ", "04"+EthCrypto.publicKey.decompress(compresssed));
 
-                //expect(pubKey).to.equal("0x04"+EthCrypto.publicKey.decompress(compresssed));
+                // expect(pubKey).to.equal("0x04"+EthCrypto.publicKey.decompress(compresssed));
 
                 // console.log(compresssed);
                 // console.log(patientHash);
                 const prefix = "0x"+compresssed.substring(0,2);
-                console.log("this prefix before:",prefix);
+                //console.log("this prefix before:",prefix);
                 //expect(receipt.status).to.be.equal(1);
 				if(receipt.status === 1){
                     let tx2 = await clerk.connect(owner).registerNodeClassifier(patientHash, '0x'+compresssed.substring(2), prefix);
@@ -125,6 +125,7 @@ describe("Clerk", function () {
 
                     const decompressed = "0x04"+EthCrypto.publicKey.decompress(compresssedRetrieved);
                     
+                    expect(decompressed).to.equal(pubKey);
 				 }
 
             // // var data = await getPK.getPublicKeyAndAddress(tx);

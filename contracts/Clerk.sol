@@ -12,7 +12,7 @@ contract ClassifierInterface {
   function getAccountToPublicKey(address account) external view returns(bytes32, bytes1){}
 }
 contract OwnershipInterface {
-    function addRecord(bytes32 _recordHash, bytes32 _linkHash, address _sender) public {}
+    function addRecord(bytes32 _recordHash, bytes32 _linkHash, bytes32 recordId, address _sender) public {}
 }
 contract Clerk {
   event Approval(address indexed _sender, address indexed _approved, uint256 indexed _tokenId);
@@ -64,9 +64,9 @@ contract Clerk {
     * getAccountToOwnership reverts if caller!=patient
     * to limit record addition to patients only.
     */
-  function addRecordOwnership(bytes32 recordHash, bytes32 linkHash) public {
+  function addRecordOwnership(bytes32 recordHash, bytes32 linkHash, bytes32 recordId) public {
     OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));
-    OC.addRecord(recordHash, linkHash , msg.sender);
+    OC.addRecord(recordHash, linkHash , recordId, msg.sender);
     emit RecordAdded(msg.sender, recordHash);
   }
 }
