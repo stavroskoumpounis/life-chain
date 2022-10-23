@@ -63,7 +63,7 @@ export const getPublicKey = async (transactionResponse: any) => {
   
     const publicKey = ethers.utils.recoverPublicKey(hashedTransactionBytes, signature)
   
-   // console.log('publicKey', publicKey);
+   console.log('publicKey', publicKey);
   
     //const originalAddress = ethers.utils.recoverAddress(hashedTransactionBytes, signature);
   

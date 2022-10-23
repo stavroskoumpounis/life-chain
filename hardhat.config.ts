@@ -10,7 +10,7 @@ const config: HardhatUserConfig = {
   networks: {
     goerli: {
       // This value will be replaced on runtime
-      url: process.env.STAGING_QUICKNODE_KEY,
+      url: process.env.GOERLI_QUICKNODE_KEY,
       accounts: [process.env.PRIVATE_KEY],
     },
   },

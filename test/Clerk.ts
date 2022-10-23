@@ -89,27 +89,30 @@ describe("Clerk", function () {
 				const receipt = await tx.wait();
 				//console.log(tx);
 
-                const pubKey = await getPK.getPublicKey(tx);
+                //const pubKey = await getPK.getPublicKey(tx);
+
+                const pubKey = "0x045f9ada7a41c1b351e92c9d8b0ab8166896de99054a36a9492857f11a1d97d889980274a2d6f31cedee2b43815f784293b2844cd5286ef0af4775c5417a6fff90";
 
                 const EthCrypto = require('eth-crypto');
 
                 //console.log(pubKey.substring(2,pubKey.length));
 
-                const compresssed = EthCrypto.publicKey.compress(pubKey.substring(2,pubKey.length));
+                const compresssed = '0x'+EthCrypto.publicKey.compress(pubKey.substring(2,pubKey.length));
 
                 //console.log("comp unhex","0x"+compresssed.substring(2));
 
                 // console.log("back to normal: ", "04"+EthCrypto.publicKey.decompress(compresssed));
 
                 // expect(pubKey).to.equal("0x04"+EthCrypto.publicKey.decompress(compresssed));
-
+                console.log(compresssed);
+                console.log(compresssed === "0x025f9ada7a41c1b351e92c9d8b0ab8166896de99054a36a9492857f11a1d97d889")
                 // console.log(compresssed);
                 // console.log(patientHash);
-                const prefix = "0x"+compresssed.substring(0,2);
+                const prefix = compresssed.substring(0,4);
                 //console.log("this prefix before:",prefix);
                 //expect(receipt.status).to.be.equal(1);
 				if(receipt.status === 1){
-                    let tx2 = await clerk.connect(owner).registerNodeClassifier(patientHash, '0x'+compresssed.substring(2), prefix);
+                    let tx2 = await clerk.connect(owner).registerNodeClassifier(patientHash, '0x'+compresssed.substring(4), prefix);
                     
                     let tx3 = await clerk.connect(owner).getPublicKeyClassifier();
 

@@ -12,7 +12,7 @@ contract ClassifierInterface {
   function getAccountToPublicKey(address account) external view returns(bytes32, bytes1){}
 }
 contract OwnershipInterface {
-    function addRecord(bytes32 _recordHash, bytes32 _linkHash, bytes32 recordId, address _sender) public {}
+    function addRecord(bytes32 _recordHash, bytes32 _pointer, address _sender) public {}
 }
 contract Clerk {
   event Approval(address indexed _sender, address indexed _approved, uint256 indexed _tokenId);
@@ -40,10 +40,9 @@ contract Clerk {
     emit Approval(msg.sender, _approved, _tokenId);
   }
 
-
   function getPublicKeyClassifier() public view onlyUser returns(bytes32, bytes1){
     return (CLC.getAccountToPublicKey(msg.sender));
-  }  
+  }
 
   function hasRoleClassifier(bytes32 role) public onlyUser returns(bool) {
     if (CLC.hasRole(role, msg.sender)){
@@ -51,7 +50,7 @@ contract Clerk {
         account: msg.sender,
         msg: "user already registered"});
     }
-    return true;
+    return false;
   }
   /**
   * @dev Registers a patient if the account hasn't been registered already
@@ -59,14 +58,15 @@ contract Clerk {
   function registerNodeClassifier(bytes32 role, bytes32 pubKeyX, bytes1 pubKeyPrefix) public onlyUser returns(bool){    
     return CLC.registerNode(role, pubKeyX, pubKeyPrefix, msg.sender);
   }
-  /*
-    * Patient record adding -- GP adding record TODO
-    * getAccountToOwnership reverts if caller!=patient
-    * to limit record addition to patients only.
-    */
-  function addRecordOwnership(bytes32 recordHash, bytes32 linkHash, bytes32 recordId) public {
+  /**
+  * Patient record adding
+  * @dev getAccountToOwnership reverts if caller!=patient, limits record addition to patients only.
+  * 
+  *  gas/sec optimisation -- seperate add record function in case of reversion
+  */
+  function addRecordOwnership(bytes32 recordHash, bytes32 pointer) public {
     OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));
-    OC.addRecord(recordHash, linkHash , recordId, msg.sender);
+    OC.addRecord(recordHash, pointer, msg.sender);
     emit RecordAdded(msg.sender, recordHash);
   }
 }

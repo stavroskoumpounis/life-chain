@@ -27,7 +27,7 @@ contract Classifier is AccessControl{
     // 0xe5786ee6f50ab1a5567cb3f3f6840a2f4ddbafdf4a35cb2c52d5b732b1e84a32
     bytes32 private constant PATIENT = keccak256(abi.encodePacked("PATIENT"));
     // 0x4f74ea76300371cf4b3e29c122169252c5f1569c798460a01c5ca3c3efa5ad71
-    bytes32 private constant GP = keccak256(abi.encodePacked("GP"));
+    bytes32 private constant THERAPIST = keccak256(abi.encodePacked("THERAPIST"));
     //add modifier-fix error
     
     // function registerNode(bytes32 role, address account) public view returns(bool){
@@ -38,6 +38,7 @@ contract Classifier is AccessControl{
     // }
     //could overide grantRole to return true for succesful registration.
     function registerNode(bytes32 role, bytes32 _pubKeyX, bytes1 _pubKeyPrefix, address account) external returns(bool) {
+        require(role == PATIENT || role == THERAPIST, "Role selected can't be registered");
         _grantRole(role, account);
         if(role == PATIENT){
             accountToOwnership[account] = address(new Ownership(account));
