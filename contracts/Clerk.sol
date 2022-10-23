@@ -12,7 +12,11 @@ contract ClassifierInterface {
   function getAccountToPublicKey(address account) external view returns(bytes32, bytes1){}
 }
 contract OwnershipInterface {
-    function addRecord(bytes32 _recordHash, bytes32 _pointer, address _sender) public {}
+    function addRecord(bytes32 _hash, bytes32 _pointer, bytes32 _recordName, address _sender) public {}
+    function getPointer(bytes32 recordName, address _sender) public view returns(bytes32){}
+    function getRecords(address _sender) public view returns(bytes32[] memory){}
+    function verifyRecord(bytes32 name, bytes32 expectedHash, address _sender) public view returns(bool){}
+
 }
 contract Clerk {
   event Approval(address indexed _sender, address indexed _approved, uint256 indexed _tokenId);
@@ -64,9 +68,19 @@ contract Clerk {
   * 
   *  gas/sec optimisation -- seperate add record function in case of reversion
   */
-  function addRecordOwnership(bytes32 recordHash, bytes32 pointer) public {
+  function addRecordOwnership(bytes32 hash, bytes32 pointer, bytes32 recordName) public {
     OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));
-    OC.addRecord(recordHash, pointer, msg.sender);
-    emit RecordAdded(msg.sender, recordHash);
+    OC.addRecord(hash, pointer, recordName, msg.sender);
+    emit RecordAdded(msg.sender, hash);
+  }
+
+  function getPointerOwnership(bytes32 recordName) public view returns(bytes32){
+    OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));
+    return OC.getPointer(recordName, msg.sender);
+  }
+
+  function verifyRecordOwnership(bytes32 name, bytes32 expectedHash) public view returns(bool){
+    OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));
+    return OC.verifyRecord(name, expectedHash, msg.sender);
   }
 }

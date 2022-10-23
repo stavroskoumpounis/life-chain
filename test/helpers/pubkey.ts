@@ -1,35 +1,5 @@
 import { ethers } from "ethers";
-
-export const getPublicKeyAndAddress = async (tx: any) => {
-  const expandedSig = {
-    r: tx.r,
-    s: tx.s,
-    v: tx.v,
-  };
-
-  const signature = ethers.utils.joinSignature(expandedSig);
-  const txData = {
-    gasPrice: tx.gasPrice,
-    gasLimit: tx.gasLimit,
-    value: tx.value,
-    nonce: tx.nonce,
-    data: tx.data,
-    chainId: tx.chainId,
-    to: tx.to, // you might need to include this if it's a regular tx and not simply a contract deployment
-  };
-
-  const rsTx = await ethers.utils.resolveProperties(txData);
-  const raw = ethers.utils.serializeTransaction(rsTx); // returns RLP encoded tx
-  const msgHash = ethers.utils.keccak256(raw); // as specified by ECDSA
-  const msgBytes = ethers.utils.arrayify(msgHash); // create binary hash
-  const recoveredPubKey = ethers.utils.recoverPublicKey(msgBytes, signature);
-  const recoveredAddress = ethers.utils.recoverAddress(msgBytes, signature);
-
-  return {
-    address: recoveredAddress,
-    publicKey: recoveredPubKey,
-  };
-};
+import { publicKeyConvert } from 'secp256k1';
 
 export const getPublicKey = async (transactionResponse: any) => {
 
@@ -71,3 +41,32 @@ export const getPublicKey = async (transactionResponse: any) => {
   
     return publicKey;
   }
+
+
+
+
+//based on https://github.com/pubkey/eth-crypto/
+
+export function compressPublicKey(startsWith04:any) {
+
+  // // add trailing 04 if not done before
+  // const testBuffer = Buffer.from(startsWith04, 'hex');
+  // if (testBuffer.length === 64) startsWith04 = '04' + startsWith04;
+
+  return ethers.utils.hexlify(publicKeyConvert(
+    ethers.utils.arrayify('0x' + startsWith04),
+    true
+  ));
+}
+export function decompressPublicKey(startsWith02Or03:any) {
+
+  // // if already decompressed doesn't have trailing 04
+  // const testBuffer = Buffer.from(startsWith02Or03, 'hex');
+  // if (testBuffer.length === 64) startsWith02Or03 = '04' + startsWith02Or03;
+
+  let decompressed = ethers.utils.hexlify(publicKeyConvert(
+    ethers.utils.arrayify('0x' + startsWith02Or03),
+    false
+  ));
+  return decompressed;
+}

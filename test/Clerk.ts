@@ -1,7 +1,6 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import web3 from "web3";
 
 //const Clerk = hre.artifacts.require("Clerk");
 
@@ -39,6 +38,38 @@ describe("Clerk", function () {
         return { clerk, owner, otherAccount, patientRole, utils, getPK, testRecord, signHashLink, signHashRecord, prov, account3};
     }
   
+    async function registerWithPubKey() {
+
+        const testPubKey = "0x0467cfb54db56b3f3dcba228bbb7f4ad9de3b7c5d4ddb0538d22afb3112ddf0f39ae2b989e9f786c87de29064cbad72dfca76073f86e830a65c9da602ad1bddd00";
+        const pkUtils = require("./helpers/pubkey");
+
+        const compresssed = pkUtils.compressPublicKey(testPubKey.substring(2));
+        const prefix = compresssed.substring(0, 4);
+        const pubkeyX = '0x' + compresssed.substring(4);
+
+        const patientRole = "0xe5786ee6f50ab1a5567cb3f3f6840a2f4ddbafdf4a35cb2c52d5b732b1e84a32";
+        // Contracts are deployed using the first signer/account by default
+        const [owner, otherAccount, account3] = await ethers.getSigners();
+        const Clerk = await ethers.getContractFactory("Clerk");
+        const clerk = await Clerk.deploy();
+
+        let signedRecord = (await owner.signMessage("data15")).toString();
+        let sigHashRecord = ethers.utils.id(signedRecord);
+        let sigPointer = (await owner.signMessage("acae6a6a-2402-4d14-8e02-80ebbe0f0725")).toString();
+        let sigHashPointer = ethers.utils.id(sigPointer);  
+
+        // create sign-hash function
+        let sigName = (await owner.signMessage("recordPHQ012508152510851")).toString();
+        let sigHashName = ethers.utils.id(sigPointer);
+
+        //register
+        await clerk.connect(owner).registerNodeClassifier(patientRole, pubkeyX, prefix);
+        //add record to OC
+        await (clerk.connect(owner).addRecordOwnership(sigHashRecord, sigHashPointer, sigHashName));
+
+        return {clerk, owner, pubkeyX, prefix, patientRole,pkUtils, testPubKey , sigHashPointer, sigHashRecord, sigHashName};        
+    }
+
     context("With the registration of a patient", async () => {
         it("Should register the patient with the right role", async function () {
             const { patientRole, clerk, owner } = await loadFixture(registerPatientFixture);
@@ -62,7 +93,7 @@ describe("Clerk", function () {
 
     
     context("With the addition of a record", async () => {
-        it("Should add the record with the correct user", async function () {
+        xit("Should add the record with the correct user", async function () {
             const { otherAccount, clerk, patientRole, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
             //console.log("From test file: Account: %s and testRecord: %s", otherAccount.address, testRecord);
             //register user
@@ -70,9 +101,27 @@ describe("Clerk", function () {
             await clerk.connect(otherAccount).registerNodeClassifier(patientRole, ethers.utils.id("0x00"),"0x02");
             expect (await (clerk.connect(otherAccount).addRecordOwnership(signHashRecord, signHashLink, ethers.utils.id(signHashRecord)))).to.emit(clerk, "RecordAdded").withArgs(otherAccount.address, signHashRecord);
         })
-        it("Should fail to create a record if the user hasn't been registered", async function () {
+        xit("Should fail to create a record if the user hasn't been registered", async function () {
             const { clerk, otherAccount, utils, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
             await utils.shouldThrow(clerk.connect(otherAccount).addRecordOwnership(signHashRecord, signHashLink, ethers.utils.id(signHashRecord)));
+        });
+
+        it("Should retrieve the stored record pointer", async function () {
+            const { clerk, owner, pubkeyX, prefix, patientRole, sigHashPointer, sigHashRecord, sigHashName } = await loadFixture(registerWithPubKey);
+
+            // //register
+            // await clerk.connect(owner).registerNodeClassifier(patientRole, pubkeyX, prefix);
+            // //add record to OC
+            // await (clerk.connect(owner).addRecordOwnership(sigHashRecord, sigHashPointer, sigHashName));
+
+            expect (await clerk.connect(owner).getPointerOwnership(sigHashName)).to.equal(sigHashPointer);
+        });
+
+        it("Should verify the stored recordHash with the hash retrieved from the app", async function (){
+            const { clerk, owner, pubkeyX, prefix, patientRole, sigHashPointer, sigHashRecord, sigHashName } = await loadFixture(registerWithPubKey);
+
+            expect(await clerk.connect(owner).verifyRecordOwnership(sigHashName,sigHashRecord)).to.be.true;
+
         });
     })
 
