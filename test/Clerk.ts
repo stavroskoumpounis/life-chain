@@ -1,7 +1,7 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-
+import {encryptSymmetric , decryptSymmetric} from "./helpers/kms";
 //const Clerk = hre.artifacts.require("Clerk");
 
 describe("Clerk", function () {
@@ -59,15 +59,19 @@ describe("Clerk", function () {
         let sigHashPointer = ethers.utils.id(sigPointer);  
 
         // create sign-hash function
-        let sigName = (await owner.signMessage("recordPHQ012508152510851")).toString();
-        let sigHashName = ethers.utils.id(sigPointer);
+        let sigName = (await owner.signMessage("sig")).toString();
+        let sigHashName = ethers.utils.id(sigName);
+
+        
+        let sigName2 = (await owner.signMessage("sigidigi")).toString();
+        let sigHashName2 = ethers.utils.id(sigName2);
 
         //register
         await clerk.connect(owner).registerNodeClassifier(patientRole, pubkeyX, prefix);
         //add record to OC
         await (clerk.connect(owner).addRecordOwnership(sigHashRecord, sigHashPointer, sigHashName));
 
-        return {clerk, owner, pubkeyX, prefix, patientRole,pkUtils, testPubKey , sigHashPointer, sigHashRecord, sigHashName};        
+        return {clerk, owner, pubkeyX, prefix, patientRole,pkUtils, testPubKey , sigHashPointer, sigHashRecord, sigHashName ,sigHashName2};        
     }
 
     context("With the registration of a patient", async () => {
@@ -123,10 +127,86 @@ describe("Clerk", function () {
             expect(await clerk.connect(owner).verifyRecordOwnership(sigHashName,sigHashRecord)).to.be.true;
 
         });
+
+        it("Should get all them records", async function (){
+            const { clerk, owner, sigHashPointer, sigHashRecord, sigHashName ,sigHashName2} = await loadFixture(registerWithPubKey);
+
+            console.log("sigHashName",sigHashName2);
+            await (clerk.connect(owner).addRecordOwnership(sigHashRecord, sigHashPointer, sigHashName2));
+
+            const names = await clerk.connect(owner).getRecordsOwnership();
+
+            console.log(names[0],names[1]);
+
+            // expect(await clerk.connect(owner).getRecordsOwnership()).to.be.true;
+
+        });
+
+        it("Should store the encrypted pointer as a bytes array", async function (){
+            const { otherAccount, clerk, patientRole, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
+
+            //const plainText = new Uint8Array([1, 2, 3, 4, 5])
+            var rId = "8aa8260a-03d0-409f-bce4-07fec0fe747f";
+            // var encPointer = new Uint8Array(5);
+
+            // for (let index = 0; index < 195; index++) {
+            //     encPointer[index] = Math.random() * 232;
+            // }
+
+            // // http://stackoverflow.com/questions/962802#962890
+            // function shuffle(array: Uint8Array) {
+            //   var tmp, current, top = array.length;
+            //   if(top) while(--top) {
+            //     current = Math.floor(Math.random() * (top + 1));
+            //     tmp = array[current];
+            //     array[current] = array[top];
+            //     array[top] = tmp;
+            //   }
+            //   return array;
+            // }
+            
+            // encPointer = shuffle(encPointer);
+
+            // console.log(encPointer);
+            
+
+            const encPointer = await encryptSymmetric(rId, process.env.COGNITO_ID as string);
+
+            console.log(encPointer);
+            
+            const hexedEncPointer = ethers.utils.hexlify(encPointer.CiphertextBlob as Uint8Array);
+
+       
+            await clerk.connect(otherAccount).registerNodeClassifier(patientRole, ethers.utils.id("0x00"),"0x02");
+            expect (await (clerk.connect(otherAccount).addRecordOwnership(signHashRecord, encPointer.CiphertextBlob as Uint8Array, ethers.utils.id(signHashRecord)))).to.emit(clerk, "RecordAdded").withArgs(otherAccount.address, signHashRecord);
+
+            // expect(await clerk.connect(owner).getRecordsOwnership()).to.be.true;
+            const bcResponse = await clerk.connect(otherAccount).getPointerOwnership(ethers.utils.id(signHashRecord));
+            expect (bcResponse).to.equal(hexedEncPointer);
+            
+            const cipherblob = encPointer.CiphertextBlob;
+            const arrResponse = ethers.utils.arrayify(bcResponse);
+            console.log(ethers.utils.arrayify(bcResponse));
+            console.log(encPointer.CiphertextBlob);
+
+            console.log(encPointer.CiphertextBlob);
+            console.assert(ethers.utils.arrayify(bcResponse) === encPointer.CiphertextBlob);
+
+            const decPointer = await decryptSymmetric(cipherblob, process.env.COGNITO_ID as string);
+
+            console.log(decPointer);
+            console.log(decPointer.$metadata);
+
+            console.log(decPointer.DecodedPlainTxt);
+
+
+            //have to test from front-end what the hell kind of bytesArray this stupid thing returns...
+        });
+
     })
 
     context("With retrieving the users public key on the front-end", async () =>{
-        it("Should register the correct public key from the metamask wallet", async function () {
+        xit("Should register the correct public key from the metamask wallet", async function () {
             const { owner, clerk, otherAccount, getPK } = await loadFixture(registerPatientFixture);
             
             //const tx = await clerk.connect(owner).registerNodeClassifier(patientRole);
@@ -190,4 +270,6 @@ describe("Clerk", function () {
             
         })
     })
+
+
 })

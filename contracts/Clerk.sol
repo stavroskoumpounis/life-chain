@@ -12,10 +12,10 @@ contract ClassifierInterface {
   function getAccountToPublicKey(address account) external view returns(bytes32, bytes1){}
 }
 contract OwnershipInterface {
-    function addRecord(bytes32 _hash, bytes32 _pointer, bytes32 _recordName, address _sender) public {}
-    function getPointer(bytes32 recordName, address _sender) public view returns(bytes32){}
+    function addRecord(bytes32 _hash, bytes calldata _pointer, bytes calldata _recordName, address _sender) public {}
+    function getPointer(bytes calldata recordName, address _sender) public view returns(bytes memory){}
     function getRecords(address _sender) public view returns(bytes32[] memory){}
-    function verifyRecord(bytes32 name, bytes32 expectedHash, address _sender) public view returns(bool){}
+    function verifyRecord(bytes calldata name, bytes32 expectedHash, address _sender) public view returns(bool){}
 
 }
 contract Clerk {
@@ -48,7 +48,7 @@ contract Clerk {
     return (CLC.getAccountToPublicKey(msg.sender));
   }
 
-  function hasRoleClassifier(bytes32 role) public onlyUser returns(bool) {
+  function hasRoleClassifier(bytes32 role) public view onlyUser returns(bool) {
     if (CLC.hasRole(role, msg.sender)){
       revert AlreadyRegistered({
         account: msg.sender,
@@ -60,7 +60,13 @@ contract Clerk {
   * @dev Registers a patient if the account hasn't been registered already
   */
   function registerNodeClassifier(bytes32 role, bytes32 pubKeyX, bytes1 pubKeyPrefix) public onlyUser returns(bool){    
-    return CLC.registerNode(role, pubKeyX, pubKeyPrefix, msg.sender);
+    if (CLC.hasRole(role, msg.sender)){
+      revert AlreadyRegistered({
+        account: msg.sender,
+        msg: "user already registered"});
+    } else {
+      return CLC.registerNode(role, pubKeyX, pubKeyPrefix, msg.sender);
+    }
   }
   /**
   * Patient record adding
@@ -68,19 +74,25 @@ contract Clerk {
   * 
   *  gas/sec optimisation -- seperate add record function in case of reversion
   */
-  function addRecordOwnership(bytes32 hash, bytes32 pointer, bytes32 recordName) public {
+  function addRecordOwnership(bytes32 hash, bytes calldata pointer, bytes calldata recordName) public {
     OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));
     OC.addRecord(hash, pointer, recordName, msg.sender);
     emit RecordAdded(msg.sender, hash);
   }
 
-  function getPointerOwnership(bytes32 recordName) public view returns(bytes32){
+  function getPointerOwnership(bytes calldata recordName) public view returns(bytes memory){
     OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));
     return OC.getPointer(recordName, msg.sender);
   }
 
-  function verifyRecordOwnership(bytes32 name, bytes32 expectedHash) public view returns(bool){
+  function verifyRecordOwnership(bytes calldata name, bytes32 expectedHash) public view returns(bool){
     OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));
     return OC.verifyRecord(name, expectedHash, msg.sender);
   }
+
+  function getRecordsOwnership() public view returns(bytes32[] memory){
+    OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));
+    return OC.getRecords(msg.sender);
+  }
+
 }
