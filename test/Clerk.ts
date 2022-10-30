@@ -142,7 +142,7 @@ describe("Clerk", function () {
 
         });
 
-        it("Should store the encrypted pointer as a bytes array", async function (){
+        xit("Should store the encrypted pointer as a bytes array", async function (){
             const { otherAccount, clerk, patientRole, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
 
             //const plainText = new Uint8Array([1, 2, 3, 4, 5])
@@ -201,6 +201,58 @@ describe("Clerk", function () {
 
 
             //have to test from front-end what the hell kind of bytesArray this stupid thing returns...
+        });
+
+        it("Should retrieve and verify the correct data from aws", async function (){
+            const { otherAccount, clerk, patientRole, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
+
+             var rId = "848e968a-a336-4c2c-92ae-9987f234f6b8";
+             var name = 'PHQlog0x6451f6c1de0261508216367a00b3a45fd0ee01556229c792094dfddb9f02c6228682d1648f2b42edad224e07c62b9966';
+             
+             const encPointer = await encryptSymmetric(rId, process.env.COGNITO_ID as string);
+             const encName = await encryptSymmetric(name, process.env.COGNITO_ID as string);
+
+             //console.log(encPointer);
+             //console.log(encName);
+
+            //  const hexedEncPointer = ethers.utils.hexlify(encPointer.CiphertextBlob as Uint8Array);
+            //  const hexedEncName = ethers.utils.hexlify(encName.CiphertextBlob as Uint8Array);
+
+            //console.log(hexedEncName,hexedEncPointer);
+             await clerk.connect(otherAccount).registerNodeClassifier(patientRole, ethers.utils.id("0x00"),"0x02");
+             expect (await (clerk.connect(otherAccount).addRecordOwnership(signHashRecord,encPointer.CiphertextBlob as Uint8Array ,encName.CiphertextBlob as Uint8Array ))).to.emit(clerk, "RecordAdded").withArgs(otherAccount.address, signHashRecord);
+ 
+             // expect(await clerk.connect(owner).getRecordsOwnership()).to.be.true;
+
+            const recordsArray = await clerk.connect(otherAccount).getRecordsOwnership();
+
+                console.log("here's yo record name:",recordsArray[0]);
+                const decName2 = await decryptSymmetric(ethers.utils.arrayify(recordsArray[0]), process.env.COGNITO_ID as string);
+                console.log("and here it is decrypted", decName2.DecodedPlainTxt);
+            
+
+            const bcResponse = await clerk.connect(otherAccount).getPointerOwnership(recordsArray[recordsArray.length-1]);
+            expect (bcResponse).to.equal(ethers.utils.hexlify(encPointer.CiphertextBlob as Uint8Array));
+             
+             const cipherblob = encPointer.CiphertextBlob;
+             const cipherblob2 = encName.CiphertextBlob;
+             const arrResponse = ethers.utils.arrayify(bcResponse);
+            //  console.log(ethers.utils.arrayify(bcResponse));
+            //  console.log(encPointer.CiphertextBlob);
+ 
+            //  console.log(encPointer.CiphertextBlob);
+            //  console.assert(ethers.utils.arrayify(bcResponse) === encPointer.CiphertextBlob);
+ 
+             const decPointer = await decryptSymmetric(cipherblob, process.env.COGNITO_ID as string);
+             const decName = await decryptSymmetric(cipherblob2, process.env.COGNITO_ID as string);
+
+            //  console.log(decPointer);
+            //  console.log(decPointer.$metadata);
+ 
+            //  console.log(decPointer.DecodedPlainTxt);
+
+            //  console.log("decrypted name:", decName.DecodedPlainTxt);
+ 
         });
 
     })

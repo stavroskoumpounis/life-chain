@@ -12,10 +12,10 @@ contract ClassifierInterface {
   function getAccountToPublicKey(address account) external view returns(bytes32, bytes1){}
 }
 contract OwnershipInterface {
-    function addRecord(bytes32 _hash, bytes calldata _pointer, bytes calldata _recordName, address _sender) public {}
-    function getPointer(bytes calldata recordName, address _sender) public view returns(bytes memory){}
-    function getRecords(address _sender) public view returns(bytes32[] memory){}
-    function verifyRecord(bytes calldata name, bytes32 expectedHash, address _sender) public view returns(bool){}
+    function addRecord(bytes32 _hash, bytes memory _pointer, bytes memory _recordName, address _sender) public {}
+    function getPointer(bytes memory recordName, address _sender) public view returns(bytes memory){}
+    function getRecords(address _sender) public view returns(bytes[] memory){}
+    function verifyRecord(bytes memory name, bytes32 expectedHash, address _sender) public view returns(bool){}
 
 }
 contract Clerk {
@@ -90,7 +90,7 @@ contract Clerk {
     return OC.verifyRecord(name, expectedHash, msg.sender);
   }
 
-  function getRecordsOwnership() public view returns(bytes32[] memory){
+  function getRecordsOwnership() public view returns(bytes[] memory){
     OwnershipInterface OC = OwnershipInterface(CLC._getAccountToOwnership(msg.sender));
     return OC.getRecords(msg.sender);
   }
