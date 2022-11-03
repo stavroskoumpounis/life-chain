@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./Ownership.sol";
 contract Classifier is AccessControl{
     //event AlreadyRegistered(bytes32 indexed role, address indexed account, address indexed sender, string msg);
+    address private clerk;
 
     struct PublicKey{
         bytes32 pubKeyX;
@@ -16,12 +17,12 @@ contract Classifier is AccessControl{
     mapping(address => address) private accountToOwnership;
     mapping(address => PublicKey) private accountToPublicKey;
 
-    /// @dev Check if method was called by a connected user with a wallet and not other contracts.
-    modifier onlyUser() {
-        require(msg.sender == tx.origin, "Reverting, Method can only be called directly by user.");
+    modifier onlyClerk() {
+        require(msg.sender == clerk);
         _;
     }
     constructor() {
+        clerk = msg.sender;
         //_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
     // 0xe5786ee6f50ab1a5567cb3f3f6840a2f4ddbafdf4a35cb2c52d5b732b1e84a32
@@ -37,11 +38,11 @@ contract Classifier is AccessControl{
     //     return false;
     // }
     //could overide grantRole to return true for succesful registration.
-    function registerNode(bytes32 role, bytes32 _pubKeyX, bytes1 _pubKeyPrefix, address account) external returns(bool) {
+    function registerNode(bytes32 role, bytes32 _pubKeyX, bytes1 _pubKeyPrefix, address account) external onlyClerk returns(bool) {
         require(role == PATIENT || role == THERAPIST, "Role selected can't be registered");
         _grantRole(role, account);
         if(role == PATIENT){
-            accountToOwnership[account] = address(new Ownership(account));
+            accountToOwnership[account] = address(new Ownership(account, clerk));
         }
         accountToPublicKey[account].pubKeyX = _pubKeyX;
         accountToPublicKey[account].pubKeyPrefix = _pubKeyPrefix;
@@ -51,7 +52,7 @@ contract Classifier is AccessControl{
     * gets Ownership Contract mapped to address
     * require limits access to patients only
     */
-    function _getAccountToOwnership(address account) public view returns(address){
+    function _getAccountToOwnership(address account) public view onlyClerk returns(address){
         require(hasRole(PATIENT,account), "Access blocked : account is missing patient role");
         return accountToOwnership[account];
     }
@@ -60,7 +61,11 @@ contract Classifier is AccessControl{
     //     return accountToOwnership[msg.sender];
     // }
 
-    function getAccountToPublicKey(address account) external view returns(bytes32, bytes1){
+    function getAccountToPublicKey(address account) external view onlyClerk returns(bytes32, bytes1){
         return (accountToPublicKey[account].pubKeyX, accountToPublicKey[account].pubKeyPrefix);
+    }
+
+    function _hasRole(address account) public view onlyClerk returns (bool) {
+        return hasRole(THERAPIST, account) || hasRole(PATIENT, account);
     }
 }

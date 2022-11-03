@@ -71,7 +71,7 @@ describe("Clerk", function () {
         //add record to OC
         await (clerk.connect(owner).addRecordOwnership(sigHashRecord, sigHashPointer, sigHashName));
 
-        return {clerk, owner, pubkeyX, prefix, patientRole,pkUtils, testPubKey , sigHashPointer, sigHashRecord, sigHashName ,sigHashName2};        
+        return {clerk, owner, otherAccount, pubkeyX, prefix, patientRole,pkUtils, testPubKey , sigHashPointer, sigHashRecord, sigHashName ,sigHashName2};        
     }
 
     context("With the registration of a patient", async () => {
@@ -111,14 +111,17 @@ describe("Clerk", function () {
         });
 
         it("Should retrieve the stored record pointer", async function () {
-            const { clerk, owner, pubkeyX, prefix, patientRole, sigHashPointer, sigHashRecord, sigHashName } = await loadFixture(registerWithPubKey);
+            const { clerk, owner, otherAccount, pubkeyX, prefix, patientRole, sigHashPointer, sigHashRecord, sigHashName } = await loadFixture(registerWithPubKey);
 
             // //register
             // await clerk.connect(owner).registerNodeClassifier(patientRole, pubkeyX, prefix);
             // //add record to OC
             // await (clerk.connect(owner).addRecordOwnership(sigHashRecord, sigHashPointer, sigHashName));
 
-            expect (await clerk.connect(owner).getPointerOwnership(sigHashName)).to.equal(sigHashPointer);
+            // expect (await clerk.connect(owner).getPointerOwnership(sigHashName)).to.equal(sigHashPointer);
+            const pointer = await clerk.connect(otherAccount).getSharedPointerOwnership(sigHashName, owner.getAddress());
+
+            console.log("check:",pointer);
         });
 
         it("Should verify the stored recordHash with the hash retrieved from the app", async function (){
