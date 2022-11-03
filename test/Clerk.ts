@@ -66,6 +66,10 @@ describe("Clerk", function () {
         let sigName2 = (await owner.signMessage("sigidigi")).toString();
         let sigHashName2 = ethers.utils.id(sigName2);
 
+        // const encName = await encryptSymmetric("{data:data}", process.env.COGNITO_ID as string);
+        // const encPointer = await encryptSymmetric("8aa8260a-03d0-409f-bce4-07fec0fe747f", process.env.COGNITO_ID as string);
+
+
         //register
         await clerk.connect(owner).registerNodeClassifier(patientRole, pubkeyX, prefix);
         //add record to OC
@@ -84,20 +88,20 @@ describe("Clerk", function () {
             const { patientRole, clerk, otherAccount,utils } = await loadFixture(registerPatientFixture);
           
             const tx = await clerk.connect(otherAccount).registerNodeClassifier(patientRole,ethers.utils.id("0x00"),"0x02");
-            const receipt = await tx.wait();
+            //const receipt = await tx.wait();
 
             // console.log(tx);
             // console.log(receipt);
 
             //expect((await clerk.connect(otherAccount).callStatic.registerNodeClassifier(patientRole))).to.be.false;
-            await utils.shouldThrow(clerk.connect(otherAccount).callStatic.hasRoleClassifier(patientRole));
+            await utils.shouldThrow(clerk.connect(otherAccount).registerNodeClassifier(patientRole,ethers.utils.id("0x00"),"0x02"));
         });
 
     })
 
     
     context("With the addition of a record", async () => {
-        xit("Should add the record with the correct user", async function () {
+        it("Should add the record with the correct user", async function () {
             const { otherAccount, clerk, patientRole, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
             //console.log("From test file: Account: %s and testRecord: %s", otherAccount.address, testRecord);
             //register user
@@ -105,7 +109,7 @@ describe("Clerk", function () {
             await clerk.connect(otherAccount).registerNodeClassifier(patientRole, ethers.utils.id("0x00"),"0x02");
             expect (await (clerk.connect(otherAccount).addRecordOwnership(signHashRecord, signHashLink, ethers.utils.id(signHashRecord)))).to.emit(clerk, "RecordAdded").withArgs(otherAccount.address, signHashRecord);
         })
-        xit("Should fail to create a record if the user hasn't been registered", async function () {
+        it("Should fail to create a record if the user hasn't been registered", async function () {
             const { clerk, otherAccount, utils, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
             await utils.shouldThrow(clerk.connect(otherAccount).addRecordOwnership(signHashRecord, signHashLink, ethers.utils.id(signHashRecord)));
         });
@@ -118,34 +122,35 @@ describe("Clerk", function () {
             // //add record to OC
             // await (clerk.connect(owner).addRecordOwnership(sigHashRecord, sigHashPointer, sigHashName));
 
-            // expect (await clerk.connect(owner).getPointerOwnership(sigHashName)).to.equal(sigHashPointer);
-            const pointer = await clerk.connect(otherAccount).getSharedPointerOwnership(sigHashName, owner.getAddress());
+            expect (await clerk.connect(owner).getPointerOwnership(sigHashName)).to.equal(sigHashPointer);
+            //const pointer = await clerk.connect(otherAccount).getSharedPointerOwnership(sigHashName, owner.getAddress());
 
-            console.log("check:",pointer);
+            //console.log("check:",pointer);
         });
 
         it("Should verify the stored recordHash with the hash retrieved from the app", async function (){
-            const { clerk, owner, pubkeyX, prefix, patientRole, sigHashPointer, sigHashRecord, sigHashName } = await loadFixture(registerWithPubKey);
+            const { clerk, owner, sigHashRecord, sigHashName } = await loadFixture(registerWithPubKey);
 
-            expect(await clerk.connect(owner).verifyRecordOwnership(sigHashName,sigHashRecord)).to.be.true;
+
+            expect(await clerk.connect(owner).verifyRecordOwnership(sigHashName,sigHashRecord, owner.getAddress())).to.be.true;
 
         });
 
         it("Should get all them records", async function (){
             const { clerk, owner, sigHashPointer, sigHashRecord, sigHashName ,sigHashName2} = await loadFixture(registerWithPubKey);
 
-            console.log("sigHashName",sigHashName2);
+            //console.log("sigHashName",sigHashName2);
             await (clerk.connect(owner).addRecordOwnership(sigHashRecord, sigHashPointer, sigHashName2));
 
             const names = await clerk.connect(owner).getRecordsOwnership();
 
-            console.log(names[0],names[1]);
+            //clearconsole.log(names[0],names[1]);
 
             // expect(await clerk.connect(owner).getRecordsOwnership()).to.be.true;
 
         });
 
-        xit("Should store the encrypted pointer as a bytes array", async function (){
+        it("Should store the encrypted pointer as a bytes array", async function (){
             const { otherAccount, clerk, patientRole, signHashLink, signHashRecord } = await loadFixture(registerPatientFixture);
 
             //const plainText = new Uint8Array([1, 2, 3, 4, 5])
@@ -175,7 +180,7 @@ describe("Clerk", function () {
 
             const encPointer = await encryptSymmetric(rId, process.env.COGNITO_ID as string);
 
-            console.log(encPointer);
+            //console.log(encPointer);
             
             const hexedEncPointer = ethers.utils.hexlify(encPointer.CiphertextBlob as Uint8Array);
 
@@ -189,21 +194,42 @@ describe("Clerk", function () {
             
             const cipherblob = encPointer.CiphertextBlob;
             const arrResponse = ethers.utils.arrayify(bcResponse);
-            console.log(ethers.utils.arrayify(bcResponse));
-            console.log(encPointer.CiphertextBlob);
+            // console.log(ethers.utils.arrayify(bcResponse));
+            // console.log(encPointer.CiphertextBlob);
 
-            console.log(encPointer.CiphertextBlob);
-            console.assert(ethers.utils.arrayify(bcResponse) === encPointer.CiphertextBlob);
+            // console.log(encPointer.CiphertextBlob);
+            // console.assert(ethers.utils.arrayify(bcResponse) === encPointer.CiphertextBlob);
 
             const decPointer = await decryptSymmetric(cipherblob, process.env.COGNITO_ID as string);
 
-            console.log(decPointer);
-            console.log(decPointer.$metadata);
+            //console.log(decPointer);
+            //console.log(decPointer.$metadata);
 
-            console.log(decPointer.DecodedPlainTxt);
+            //console.log(decPointer.DecodedPlainTxt);
 
 
             //have to test from front-end what the hell kind of bytesArray this stupid thing returns...
+        });
+
+        it("Should retrieve the encrypted pointer and decrypt to the original pointer", async function (){
+            const { otherAccount, clerk, patientRole, signHashRecord } = await loadFixture(registerPatientFixture);
+            
+            var rId = "8aa8260a-03d0-409f-bce4-07fec0fe747f";
+            const encPointer = await encryptSymmetric(rId, process.env.COGNITO_ID as string);
+
+            const hexedEncPointer = ethers.utils.hexlify(encPointer.CiphertextBlob as Uint8Array);
+
+       
+            await clerk.connect(otherAccount).registerNodeClassifier(patientRole, ethers.utils.id("0x00"),"0x02");
+            expect (await (clerk.connect(otherAccount).addRecordOwnership(signHashRecord, encPointer.CiphertextBlob as Uint8Array, ethers.utils.id(signHashRecord)))).to.emit(clerk, "RecordAdded").withArgs(otherAccount.address, signHashRecord);
+
+            const bcResponse = await clerk.connect(otherAccount).getPointerOwnership(ethers.utils.id(signHashRecord));
+            expect (bcResponse).to.equal(hexedEncPointer);
+            
+            var decPointer = await decryptSymmetric(encPointer.CiphertextBlob, process.env.COGNITO_ID as string);
+            decPointer = decPointer.DecodedPlainTxt.substring(1,decPointer.DecodedPlainTxt.length-1);
+            expect (decPointer).to.equal(rId);
+
         });
 
         it("Should retrieve and verify the correct data from aws", async function (){
@@ -229,9 +255,9 @@ describe("Clerk", function () {
 
             const recordsArray = await clerk.connect(otherAccount).getRecordsOwnership();
 
-                console.log("here's yo record name:",recordsArray[0]);
+                //console.log("here's yo record name:",recordsArray[0]);
                 const decName2 = await decryptSymmetric(ethers.utils.arrayify(recordsArray[0]), process.env.COGNITO_ID as string);
-                console.log("and here it is decrypted", decName2.DecodedPlainTxt);
+                //console.log("and here it is decrypted", decName2.DecodedPlainTxt);
             
 
             const bcResponse = await clerk.connect(otherAccount).getPointerOwnership(recordsArray[recordsArray.length-1]);
@@ -261,16 +287,16 @@ describe("Clerk", function () {
     })
 
     context("With retrieving the users public key on the front-end", async () =>{
-        xit("Should register the correct public key from the metamask wallet", async function () {
+        it("Should register the correct public key from the metamask wallet", async function () {
             const { owner, clerk, otherAccount, getPK } = await loadFixture(registerPatientFixture);
             
             //const tx = await clerk.connect(owner).registerNodeClassifier(patientRole);
                 const patientHash = ethers.utils.id("PATIENT");
-				console.log("ethereum object found...executing registerNodeCLC");
+				//console.log("ethereum object found...executing registerNodeCLC");
 				let tx = await clerk.connect(otherAccount).hasRoleClassifier(patientHash);
 				//wait for transaction to be mined
                 
-				const receipt = await tx.wait();
+				// const receipt = await tx.wait();
 				//console.log(tx);
 
                 //const pubKey = await getPK.getPublicKey(tx);
@@ -288,19 +314,19 @@ describe("Clerk", function () {
                 // console.log("back to normal: ", "04"+EthCrypto.publicKey.decompress(compresssed));
 
                 // expect(pubKey).to.equal("0x04"+EthCrypto.publicKey.decompress(compresssed));
-                console.log(compresssed);
-                console.log(compresssed === "0x025f9ada7a41c1b351e92c9d8b0ab8166896de99054a36a9492857f11a1d97d889")
+               // console.log(compresssed);
+               // console.log(compresssed === "0x025f9ada7a41c1b351e92c9d8b0ab8166896de99054a36a9492857f11a1d97d889")
                 // console.log(compresssed);
                 // console.log(patientHash);
                 const prefix = compresssed.substring(0,4);
                 //console.log("this prefix before:",prefix);
                 //expect(receipt.status).to.be.equal(1);
-				if(receipt.status === 1){
+				if(tx === false){
                     let tx2 = await clerk.connect(owner).registerNodeClassifier(patientHash, '0x'+compresssed.substring(4), prefix);
                     
                     let tx3 = await clerk.connect(owner).getPublicKeyClassifier();
 
-                    // console.log("this must be pubkeyX:",tx3[0]);
+                    console.log("this must be pubkeyX:",tx3[0]);
                     // console.log("this the prefix:",tx3[1]);
 
 
