@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.17;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -24,10 +24,12 @@ contract Ownership is Ownable{
 
     mapping(bytes => RecordData) private nameToRecord;
     bytes[] private recordNames;
+
     constructor(address patient, address buildingContract) {
-        _transferOwnership(patient);
         clerk = buildingContract;
+        _transferOwnership(patient);
     }
+
     /*
     * Only the owner of the OC can add a record
     */
@@ -50,7 +52,7 @@ contract Ownership is Ownable{
         require(_sender == owner(), "Owner check: sender is not the owner");
         return nameToRecord[recordName].accountToPointer[_sender];
     }
-    function getSharedPointer(bytes memory recordName, address patient, address sender) public view returns(bytes memory){
+    function getSharedPointer(bytes memory recordName, address patient, address sender) public onlyClerk view returns(bytes memory){
         require(patient == owner(), "Owner check: patient is not the owner");
         require(nameToRecord[recordName].accountToPointer[sender].length != 0, "error: no shared pointer present");
         return nameToRecord[recordName].accountToPointer[sender];

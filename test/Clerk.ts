@@ -13,6 +13,8 @@ describe("Clerk", function () {
         const Clerk = await ethers.getContractFactory("Clerk");
         const clerk = await Clerk.deploy();
 
+        // ethers.getImpersonatedSigner('')
+
         const prov = await ethers.getDefaultProvider();
 
         const utils = require("./helpers/utils");
@@ -326,7 +328,7 @@ describe("Clerk", function () {
                     
                     let tx3 = await clerk.connect(owner).getPublicKeyClassifier();
 
-                    console.log("this must be pubkeyX:",tx3[0]);
+                    //console.log("this must be pubkeyX:",tx3[0]);
                     // console.log("this the prefix:",tx3[1]);
 
 

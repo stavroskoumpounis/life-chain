@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.17;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -50,12 +50,12 @@ contract Classifier is AccessControl{
     //     return accountToOwnership[msg.sender];
     // }
 
-    function getAccountToPublicKey(address account) external view onlyClerk returns(bytes32, bytes1){
+    function getAccountToPublicKey(address account) public view onlyClerk returns(bytes32, bytes1){
         return (accountToPublicKey[account].pubKeyX, accountToPublicKey[account].pubKeyPrefix);
     }
 
     function _hasRole(address account) public view onlyClerk returns (bool) {
-        return hasRole(THERAPIST, account) || hasRole(PATIENT, account);
+        return hasRole(PATIENT, account)|| hasRole(THERAPIST, account);
     }
 }
 

@@ -6,6 +6,7 @@ typechain
 typechain-types
 contractalt
 .deps
+gas-report.txt
 
 #Hardhat files
 cache
