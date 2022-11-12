@@ -21,10 +21,16 @@
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@nomiclabs/hardhat-truffle5": "^2.0.7",
     "@nomiclabs/hardhat-web3": "^2.0.0",
+    "ethers": "^5.5.4",
     "hardhat": "^2.11.1",
-    "web3": "^1.7.5"
+    "hardhat-gas-reporter": "^1.0.9",
+    "secp256k1": "^4.0.3",
+    "web3": "^1.8.0"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.7.3"
+    "@aws-sdk/client-kms": "^3.199.0",
+    "@openzeppelin/contracts": "^4.7.3",
+    "dotenv": "^16.0.3",
+    "eth-crypto": "^2.3.0"
   }
 }

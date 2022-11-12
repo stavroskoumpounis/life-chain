@@ -1,58 +1,95 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity ^0.8.7;
+pragma solidity 0.8.16;
 
-import "hardhat/console.sol";
 import "./Classifier.sol";
 
-contract ClassifierInterface {
-  function registerNode(bytes32 role, address account) public returns(bool){}
-  function getAccountToOwnership(address account) external view returns(address){}
-}
-contract OwnershipInterface {
-    function addRecord(string memory testRecord, address _sender) external {}
-}
 contract Clerk {
-  event Approval(address indexed _sender, address indexed _approved, uint256 indexed _tokenId);
-  event RecordAdded(address indexed _sender, string testRecord);
+  //event Approval(address indexed _sender, address indexed _approved, uint256 indexed _tokenId);
 
-  ClassifierInterface private CLC;
+  error AlreadyRegistered(address account, string msg);
+
+  bool private stopped = false;
+  address private admin;
+
+  Classifier private clc;
+
+  function toggleCircuitBreaker() public {
+    require(msg.sender == admin);
+    stopped = !stopped;
+  }
+  
+  modifier stopInEmergency { require(!stopped, "contract has been stopped via circuit breaker"); _; }
+
   /// @dev Check if method was called by a connected user with a wallet and not other contracts.
+  //add only registered user
   modifier onlyUser() {
     require(msg.sender == tx.origin, "Reverting, Method can only be called directly by user.");
     _;
   }
-  modifier onlyOwnerOf(uint256 _tokenId){
+
+  modifier onlyRegistered(){
+    require(clc.hasRole(msg.sender), "Access blocked: user isn't registered");
     _;
   }
   constructor(){
-    CLC = ClassifierInterface(address(new Classifier()));
-  }
-  /**
-  * @dev transaction approval from user
-  * TEMPLATE
-  */
-  function approve(address _approved, uint256 _tokenId) public payable onlyOwnerOf(_tokenId) {
-    //recordApprovals[_tokenId] = _approved;
-    emit Approval(msg.sender, _approved, _tokenId);
+    admin = msg.sender;
+    clc = Classifier(address(new Classifier()));
   }
 
-  function registerNodeClassifier(bytes32 role) public onlyUser returns(bool){
-    return _registerNodeClassifier(role);
+  fallback() external payable {revert();}
+  receive() external payable {revert();}
+  function withdrawEth() public{
+    require(msg.sender == admin);
+    address payable to = payable(msg.sender);
+    to.transfer(address(this).balance);
+  }
+  
+  function getPublicKeyClassifier() public view onlyUser returns(bytes32, bytes1){
+    return (clc.getAccountToPublicKey(msg.sender));
+  }
+  function hasRoleClassifier(bytes32 role) public view onlyUser returns(bool) {
+    if (clc.hasRole(role, msg.sender)){
+      return true;
+    }
+    return false;
   }
   /**
   * @dev Registers a patient if the account hasn't been registered already
   */
-  function _registerNodeClassifier(bytes32 role) private returns(bool){
-    return CLC.registerNode(role, msg.sender);
+  function registerNodeClassifier(bytes32 role, bytes32 pubKeyX, bytes1 pubKeyPrefix) public onlyUser stopInEmergency returns(bool){    
+    if (clc.hasRole(role, msg.sender)){
+      revert AlreadyRegistered({
+        account: msg.sender,
+        msg: "user already registered"});
+    } else {
+      return clc.registerNode(role, pubKeyX, pubKeyPrefix, msg.sender);
+    }
   }
-  /*
-    * patient record adding -- GP adding record TODO
-    * require in getAccountToOwnership reverts "account missing role patient"
-    */
-  function addRecordOwnership(string memory testRecord) public {
-    OwnershipInterface OC = OwnershipInterface(CLC.getAccountToOwnership(msg.sender));
-    OC.addRecord(testRecord, msg.sender);
-    emit RecordAdded(msg.sender, testRecord);
+  /**
+  * Patient record adding
+  * @dev getAccountToOwnership reverts if caller!=patient, limits record addition to patients only.
+  * 
+  *  gas/sec optimisation -- seperate add record function in case of reversion
+  */
+  function addRecordOwnership(bytes32 hash, bytes calldata pointer, bytes calldata recordName) public stopInEmergency {
+    Ownership OC = Ownership(clc.getAccountToOwnership(msg.sender));
+    OC.addRecord(hash, pointer, recordName, msg.sender);
   }
+  function getPointerOwnership(bytes calldata recordName) public view stopInEmergency returns(bytes memory){
+    Ownership OC = Ownership(clc.getAccountToOwnership(msg.sender));
+    return OC.getPointer(recordName, msg.sender);
+  }
+  function verifyRecordOwnership(bytes calldata name, bytes32 expectedHash, address patient) public view onlyRegistered stopInEmergency returns(bool){
+    Ownership OC = Ownership(clc.getAccountToOwnership(patient));
+    return OC.verifyRecord(name, expectedHash);
+  }
+  function getRecordsOwnership() public view stopInEmergency returns(bytes[] memory){
+    Ownership OC = Ownership(clc.getAccountToOwnership(msg.sender));
+    return OC.getRecords(msg.sender);
+  }
+   function getSharedPointerOwnership(bytes calldata recordName, address patient) public view onlyRegistered stopInEmergency returns(bytes memory){
+    Ownership OC = Ownership(clc.getAccountToOwnership(patient));
+    return OC.getSharedPointer(recordName, patient, msg.sender);
+   }
 }
