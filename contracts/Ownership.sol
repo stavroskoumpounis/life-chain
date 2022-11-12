@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 
-pragma solidity 0.8.17;
-
-import "hardhat/console.sol";
+pragma solidity 0.8.16;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 //This contract must have access only by patients.
 contract Ownership is Ownable{
+    event RecordAdded(address indexed _sender, bytes32 indexed recordHash);
     struct RecordData{
         mapping(address => bytes) accountToPointer;
         // account => pubKey sign/encrypted hash/id
@@ -26,6 +25,7 @@ contract Ownership is Ownable{
     bytes[] private recordNames;
 
     constructor(address patient, address buildingContract) {
+        require(buildingContract != address(0));
         clerk = buildingContract;
         _transferOwnership(patient);
     }
@@ -33,24 +33,25 @@ contract Ownership is Ownable{
     /*
     * Only the owner of the OC can add a record
     */
-    function addRecord(bytes32 _hash, bytes memory _pointer, bytes memory _recordName, address _sender) public onlyClerk {
-        require(_sender == owner(), "Owner check: sender is not the owner");
-        recordNames.push(_recordName);
+    function addRecord(bytes32 hash, bytes memory pointer, bytes memory recordName, address sender) public onlyClerk {
+        require(sender == owner(), "Owner check: sender is not the owner");
+        recordNames.push(recordName);
         // pointer on creating is for real db -- then adding pointers for temp box
-        nameToRecord[_recordName].accountToPointer[_sender] = _pointer;
-        nameToRecord[_recordName].recordHash = _hash;
+        nameToRecord[recordName].accountToPointer[sender] = pointer;
+        nameToRecord[recordName].recordHash = hash;
+        emit RecordAdded(msg.sender, hash);
     }
-    function addSharedPointer (address _sender, address clinician, bytes memory _recordName, bytes memory pointer) public onlyClerk {
-        require(_sender == owner(), "Owner check: sender is not the owner");
-        nameToRecord[_recordName].accountToPointer[clinician] = pointer;
+    function addSharedPointer (address sender, address clinician, bytes memory recordName, bytes memory pointer) public onlyClerk {
+        require(sender == owner(), "Owner check: sender is not the owner");
+        nameToRecord[recordName].accountToPointer[clinician] = pointer;
     }
-    function getRecords(address _sender) public view onlyClerk returns(bytes[] memory) {
-        require(_sender == owner(), "Owner check: sender is not the owner");
+    function getRecords(address sender) public view onlyClerk returns(bytes[] memory) {
+        require(sender == owner(), "Owner check: sender is not the owner");
         return recordNames;
     }
-    function getPointer(bytes memory recordName, address _sender) public view onlyClerk returns(bytes memory){
-        require(_sender == owner(), "Owner check: sender is not the owner");
-        return nameToRecord[recordName].accountToPointer[_sender];
+    function getPointer(bytes memory recordName, address sender) public view onlyClerk returns(bytes memory){
+        require(sender == owner(), "Owner check: sender is not the owner");
+        return nameToRecord[recordName].accountToPointer[sender];
     }
     function getSharedPointer(bytes memory recordName, address patient, address sender) public onlyClerk view returns(bytes memory){
         require(patient == owner(), "Owner check: patient is not the owner");

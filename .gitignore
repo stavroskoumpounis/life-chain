@@ -7,6 +7,13 @@ typechain-types
 contractalt
 .deps
 gas-report.txt
+slitherReport.json
+.vscode/
+Classifier.call-graph.dot
+Clerk.call-graph.dot
+Ownership.call-graph.dot
+Strings.call-graph.dot
+all_contracts.call-graph.dot
 
 #Hardhat files
 cache
