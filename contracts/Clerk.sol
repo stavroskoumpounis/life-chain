@@ -5,8 +5,6 @@ pragma solidity 0.8.16;
 import "./Classifier.sol";
 
 contract Clerk {
-  //event Approval(address indexed _sender, address indexed _approved, uint256 indexed _tokenId);
-
   error AlreadyRegistered(address account, string msg);
 
   bool private stopped = false;
@@ -45,10 +43,10 @@ contract Clerk {
     to.transfer(address(this).balance);
   }
   
-  function getPublicKeyClassifier() public view onlyUser returns(bytes32, bytes1){
+  function getPublicKeyClassifier() public view onlyUser stopInEmergency returns(bytes32, bytes1){
     return (clc.getAccountToPublicKey(msg.sender));
   }
-  function hasRoleClassifier(bytes32 role) public view onlyUser returns(bool) {
+  function hasRoleClassifier(bytes32 role) public view onlyUser stopInEmergency returns(bool) {
     if (clc.hasRole(role, msg.sender)){
       return true;
     }

@@ -74,6 +74,8 @@ describe("Clerk", function () {
 
         //register
         await clerk.connect(owner).registerNodeClassifier(patientRole, pubkeyX, prefix);
+        await clerk.connect(owner).hasRoleClassifier(patientRole);
+
         //add record to OC
         await (clerk.connect(owner).addRecordOwnership(sigHashRecord, sigHashPointer, sigHashName));
 
@@ -297,7 +299,7 @@ describe("Clerk", function () {
 				//console.log("ethereum object found...executing registerNodeCLC");
 				let tx = await clerk.connect(otherAccount).hasRoleClassifier(patientHash);
 				//wait for transaction to be mined
-                
+                //console.log(tx);
 				// const receipt = await tx.wait();
 				//console.log(tx);
 
@@ -353,6 +355,14 @@ describe("Clerk", function () {
             
         })
     })
-
+    context("With the functionality of the circuit breaker", async () => {
+        it("Should fail to interact with the contract when toggled on", async function () {
+            const { patientRole, clerk, owner, otherAccount, utils } = await loadFixture(registerPatientFixture);
+            
+            await clerk.connect(owner).toggleCircuitBreaker();
+           
+            await utils.shouldThrow(clerk.connect(otherAccount).registerNodeClassifier(patientRole,ethers.utils.id("0x00"),"0x02"));
+        })
+    })
 
 })
